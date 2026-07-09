@@ -1,10 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { createSow, getSow, listSows, updateSow } from "@/lib/db/queries";
+import {
+  createFarrowing,
+  createSow,
+  getFarrowing,
+  getSow,
+  listActiveFarrowings,
+  listFarrowingsForSow,
+  listSows,
+  updateFarrowingCounter,
+  updateSow,
+  weanFarrowing,
+} from "@/lib/db/queries";
 import type { Database, Tables } from "@/types/database";
 
 type Sow = Tables<"sows">;
+type Farrowing = Tables<"farrowings">;
 type Call = { method: string; args: unknown[] };
 
 /**
@@ -150,6 +162,158 @@ describe("updateSow", () => {
       { method: "eq", args: ["id", "sow-1"] },
       { method: "select", args: [] },
       { method: "single", args: [] },
+    ]);
+  });
+});
+
+const sampleFarrowing: Farrowing = {
+  id: "farrowing-1",
+  user_id: "user-1",
+  sow_id: "sow-1",
+  farrowing_date: "2026-06-01",
+  born_alive: 8,
+  current_piglets: 8,
+  status: "lactating",
+  weaning_date: null,
+  created_at: "2026-06-01T00:00:00Z",
+  updated_at: "2026-06-01T00:00:00Z",
+};
+
+describe("listFarrowingsForSow", () => {
+  it("selects farrowings for the given sow, newest first, without an explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleFarrowing],
+      error: null,
+    });
+
+    const result = await listFarrowingsForSow(supabase, "sow-1");
+
+    expect(result).toEqual([sampleFarrowing]);
+    expect(calls).toEqual([
+      { method: "from", args: ["farrowings"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["sow_id", "sow-1"] },
+      { method: "order", args: ["farrowing_date", { ascending: false }] },
+    ]);
+    // Farm isolation relies on RLS (auth.uid() = user_id), never an
+    // app-level user_id filter — same contract as the sow queries.
+    expect(
+      calls.some((call) => call.method === "eq" && call.args[0] === "user_id"),
+    ).toBe(false);
+  });
+});
+
+describe("getFarrowing", () => {
+  it("fetches a single farrowing scoped by id", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleFarrowing,
+      error: null,
+    });
+
+    const result = await getFarrowing(supabase, "farrowing-1");
+
+    expect(result).toEqual(sampleFarrowing);
+    expect(calls).toEqual([
+      { method: "from", args: ["farrowings"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["id", "farrowing-1"] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("createFarrowing", () => {
+  it("inserts current_piglets initialized from born_alive, never a caller-supplied user_id or status", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleFarrowing,
+      error: null,
+    });
+
+    const result = await createFarrowing(supabase, {
+      sow_id: "sow-1",
+      farrowing_date: "2026-06-01",
+      born_alive: 8,
+    });
+
+    expect(result).toEqual(sampleFarrowing);
+    const insertCall = calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toEqual({
+      sow_id: "sow-1",
+      farrowing_date: "2026-06-01",
+      born_alive: 8,
+      current_piglets: 8,
+    });
+    expect(insertCall?.args[0]).not.toHaveProperty("user_id");
+    expect(insertCall?.args[0]).not.toHaveProperty("status");
+  });
+});
+
+describe("updateFarrowingCounter", () => {
+  it("updates only current_piglets for the given id — no mortality event/history columns written", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleFarrowing, current_piglets: 7 },
+      error: null,
+    });
+
+    const result = await updateFarrowingCounter(supabase, "farrowing-1", 7);
+
+    expect(result.current_piglets).toBe(7);
+    const updateCall = calls.find((call) => call.method === "update");
+    expect(updateCall?.args[0]).toEqual({ current_piglets: 7 });
+    expect(calls).toEqual([
+      { method: "from", args: ["farrowings"] },
+      { method: "update", args: [{ current_piglets: 7 }] },
+      { method: "eq", args: ["id", "farrowing-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+
+  it("accepts zero as a valid target count (all piglets lost)", async () => {
+    const { supabase } = fakeSupabase({
+      data: { ...sampleFarrowing, current_piglets: 0 },
+      error: null,
+    });
+
+    const result = await updateFarrowingCounter(supabase, "farrowing-1", 0);
+
+    expect(result.current_piglets).toBe(0);
+  });
+});
+
+describe("weanFarrowing", () => {
+  it("sets weaning_date and status=weaned, closing out the farrowing", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleFarrowing, status: "weaned", weaning_date: "2026-07-01" },
+      error: null,
+    });
+
+    const result = await weanFarrowing(supabase, "farrowing-1", "2026-07-01");
+
+    expect(result.status).toBe("weaned");
+    expect(result.weaning_date).toBe("2026-07-01");
+    const updateCall = calls.find((call) => call.method === "update");
+    expect(updateCall?.args[0]).toEqual({
+      weaning_date: "2026-07-01",
+      status: "weaned",
+    });
+  });
+});
+
+describe("listActiveFarrowings", () => {
+  it("selects only lactating farrowings, excluding weaned ones from active views", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleFarrowing],
+      error: null,
+    });
+
+    const result = await listActiveFarrowings(supabase);
+
+    expect(result).toEqual([sampleFarrowing]);
+    expect(calls).toEqual([
+      { method: "from", args: ["farrowings"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["status", "lactating"] },
     ]);
   });
 });
