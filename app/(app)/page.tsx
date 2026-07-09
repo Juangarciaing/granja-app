@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
@@ -12,9 +14,12 @@ export default async function DashboardPage() {
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Sesión iniciada como {user?.email ?? "usuario"}.
       </p>
+      <Link href="/sows" className="text-sm font-medium hover:underline">
+        Ver cerdas →
+      </Link>
       <p className="text-sm text-zinc-500">
-        El resumen de cerdas, partos y alimento diario se agrega en las
-        siguientes fases del proyecto.
+        El resumen de partos y alimento diario se agrega en las siguientes
+        fases del proyecto.
       </p>
     </main>
   );
