@@ -19,4 +19,8 @@ describe("calcDailyFeed", () => {
     expect(calcDailyFeed(oldConfig, 8)).toBeCloseTo(5.2);
     expect(calcDailyFeed(newConfig, 8)).toBeCloseTo(6.5);
   });
+
+  it("rounds to 2 decimals, avoiding floating-point drift for realistic configs", () => {
+    expect(calcDailyFeed({ base_kg: 2, kg_per_piglet: 0.35 }, 7)).toBe(4.45);
+  });
 });
