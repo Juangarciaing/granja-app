@@ -1,7 +1,14 @@
 import { notFound } from "next/navigation";
 
 import { markFatteningPigSoldAction } from "@/app/(app)/fattening-pigs/actions";
-import { getFatteningPig } from "@/lib/db/queries";
+import {
+  createWeightCheckinAction,
+  deleteWeightCheckinAction,
+  updateWeightCheckinAction,
+} from "@/app/(app)/fattening-pigs/[id]/actions";
+import { WeightCheckinForm } from "@/components/weight-checkins/WeightCheckinForm";
+import { WeightCheckinRow } from "@/components/weight-checkins/WeightCheckinRow";
+import { getFatteningPig, listWeightCheckinsForPig } from "@/lib/db/queries";
 import { createClient } from "@/lib/supabase/server";
 
 type FatteningPigDetailPageProps = {
@@ -19,8 +26,11 @@ export default async function FatteningPigDetailPage({
     notFound();
   }
 
+  const checkins = await listWeightCheckinsForPig(supabase, id);
+
   const isActive = pig.exit_date === null;
   const boundMarkSoldAction = markFatteningPigSoldAction.bind(null, id);
+  const boundCreateCheckinAction = createWeightCheckinAction.bind(null, id);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">
@@ -51,14 +61,41 @@ export default async function FatteningPigDetailPage({
       </dl>
 
       {/*
-        Weight check-in history/growth curve (weight_checkins CRUD + this
-        section's UI) lands in PR2 — see Engram sdd/control-peso-engorde/tasks
-        Phase 3/4. Left as a placeholder so this page's layout doesn't need
-        to change shape when that lands.
+        Growth curve v1 (spec: "View Weight History / Growth Curve") — a
+        plain chronological table, no chart. entry_weight @ entry_date is
+        always shown first (it's the pig's baseline, not a check-in row),
+        followed by every recorded check-in ascending by checkin_date, each
+        with its delta vs. entry_weight. A pig with zero check-ins still
+        shows this baseline row with no error (spec scenario: "Pig with no
+        check-ins yet").
       */}
-      <div className="flex flex-col gap-2 border-t pt-6">
+      <div className="flex flex-col gap-4 border-t pt-6">
         <h2 className="text-xl font-semibold">Historial de pesajes</h2>
-        <p className="text-sm text-zinc-500">Próximamente.</p>
+
+        <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+          <li className="py-3">
+            <span className="font-medium">{pig.entry_date}</span>
+            <p className="text-sm text-zinc-500">{pig.entry_weight} kg · Peso inicial</p>
+          </li>
+          {checkins.map((checkin) => (
+            <WeightCheckinRow
+              key={checkin.id}
+              checkinDate={checkin.checkin_date}
+              weight={checkin.weight}
+              entryWeight={pig.entry_weight}
+              updateAction={updateWeightCheckinAction.bind(null, checkin.id, id)}
+              deleteAction={deleteWeightCheckinAction.bind(null, checkin.id, id)}
+            />
+          ))}
+        </ul>
+
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-medium">Registrar nuevo pesaje</h3>
+          <WeightCheckinForm
+            action={boundCreateCheckinAction}
+            submitLabel="Registrar pesaje"
+          />
+        </div>
       </div>
     </main>
   );

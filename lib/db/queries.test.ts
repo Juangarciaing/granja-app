@@ -5,6 +5,8 @@ import {
   createFarrowing,
   createFatteningPig,
   createSow,
+  createWeightCheckin,
+  deleteWeightCheckin,
   getFarrowing,
   getFatteningPig,
   getFeedingConfig,
@@ -13,10 +15,12 @@ import {
   listActiveFatteningPigs,
   listFarrowingsForSow,
   listSows,
+  listWeightCheckinsForPig,
   markFatteningPigSold,
   updateFarrowingCounter,
   updateFeedingConfig,
   updateSow,
+  updateWeightCheckin,
   weanFarrowing,
 } from "@/lib/db/queries";
 import type { Database, Tables } from "@/types/database";
@@ -25,6 +29,7 @@ type Sow = Tables<"sows">;
 type Farrowing = Tables<"farrowings">;
 type FeedingConfigRow = Tables<"feeding_config">;
 type FatteningPig = Tables<"fattening_pigs">;
+type WeightCheckin = Tables<"weight_checkins">;
 type Call = { method: string; args: unknown[] };
 
 /**
@@ -50,6 +55,7 @@ function fakeSupabase(response: { data: unknown; error: unknown }) {
     select: (...args: unknown[]) => Builder;
     insert: (...args: unknown[]) => Builder;
     update: (...args: unknown[]) => Builder;
+    delete: (...args: unknown[]) => Builder;
     eq: (...args: unknown[]) => Builder;
     is: (...args: unknown[]) => Builder;
     order: (...args: unknown[]) => Builder;
@@ -60,6 +66,7 @@ function fakeSupabase(response: { data: unknown; error: unknown }) {
     select: record("select"),
     insert: record("insert"),
     update: record("update"),
+    delete: record("delete"),
     eq: record("eq"),
     is: record("is"),
     order: record("order"),
@@ -523,5 +530,122 @@ describe("markFatteningPigSold", () => {
       { method: "select", args: [] },
       { method: "single", args: [] },
     ]);
+  });
+});
+
+const sampleWeightCheckin: WeightCheckin = {
+  id: "checkin-1",
+  user_id: "user-1",
+  fattening_pig_id: "pig-1",
+  checkin_date: "2026-07-15",
+  weight: 22.3,
+  created_at: "2026-07-15T00:00:00Z",
+  updated_at: "2026-07-15T00:00:00Z",
+};
+
+describe("listWeightCheckinsForPig", () => {
+  it("selects check-ins for the given pig ordered by checkin_date ascending, without an explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleWeightCheckin],
+      error: null,
+    });
+
+    const result = await listWeightCheckinsForPig(supabase, "pig-1");
+
+    expect(result).toEqual([sampleWeightCheckin]);
+    expect(calls).toEqual([
+      { method: "from", args: ["weight_checkins"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["fattening_pig_id", "pig-1"] },
+      { method: "order", args: ["checkin_date", { ascending: true }] },
+    ]);
+    // Farm isolation relies on RLS (auth.uid() = user_id), never an
+    // app-level user_id filter — same contract as listFarrowingsForSow.
+    expect(
+      calls.some((call) => call.method === "eq" && call.args[0] === "user_id"),
+    ).toBe(false);
+  });
+
+  it("returns an empty list for a pig with zero check-ins, without an error (spec: 'Pig with no check-ins yet')", async () => {
+    const { supabase } = fakeSupabase({ data: [], error: null });
+
+    const result = await listWeightCheckinsForPig(supabase, "pig-1");
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe("createWeightCheckin", () => {
+  it("inserts only the editable fields plus fattening_pig_id, never a caller-supplied user_id", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleWeightCheckin,
+      error: null,
+    });
+
+    const result = await createWeightCheckin(supabase, {
+      fattening_pig_id: "pig-1",
+      checkin_date: "2026-07-15",
+      weight: 22.3,
+    });
+
+    expect(result).toEqual(sampleWeightCheckin);
+    const insertCall = calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toEqual({
+      fattening_pig_id: "pig-1",
+      checkin_date: "2026-07-15",
+      weight: 22.3,
+    });
+    expect(insertCall?.args[0]).not.toHaveProperty("user_id");
+  });
+});
+
+describe("updateWeightCheckin", () => {
+  it("updates checkin_date and weight for the given id, scoped only by eq('id', id) — pg-safeupdate satisfied by id alone, same as markFatteningPigSold", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleWeightCheckin, weight: 23.1 },
+      error: null,
+    });
+
+    const result = await updateWeightCheckin(supabase, "checkin-1", {
+      checkin_date: "2026-07-15",
+      weight: 23.1,
+    });
+
+    expect(result.weight).toBe(23.1);
+    expect(calls).toEqual([
+      { method: "from", args: ["weight_checkins"] },
+      {
+        method: "update",
+        args: [{ checkin_date: "2026-07-15", weight: 23.1 }],
+      },
+      { method: "eq", args: ["id", "checkin-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("deleteWeightCheckin", () => {
+  it("deletes the check-in scoped only by eq('id', id) — pg-safeupdate applies to DELETE too, id alone is sufficient", async () => {
+    const { supabase, calls } = fakeSupabase({ data: null, error: null });
+
+    await deleteWeightCheckin(supabase, "checkin-1");
+
+    expect(calls).toEqual([
+      { method: "from", args: ["weight_checkins"] },
+      { method: "delete", args: [] },
+      { method: "eq", args: ["id", "checkin-1"] },
+    ]);
+  });
+
+  it("propagates a Postgres/RLS error instead of swallowing it", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: { message: "permission denied for table weight_checkins" },
+    });
+
+    await expect(deleteWeightCheckin(supabase, "checkin-1")).rejects.toEqual({
+      message: "permission denied for table weight_checkins",
+    });
   });
 });

@@ -356,3 +356,106 @@ export async function markFatteningPigSold(
   if (error) throw error;
   return data;
 }
+
+export type WeightCheckin = Tables<"weight_checkins">;
+
+/**
+ * Editable weight-checkin fields for create. `user_id`, `id` and
+ * `created_at`/`updated_at` are intentionally excluded: `user_id` is
+ * assigned by RLS default (same ownership contract as `NewFatteningPig`).
+ * `fattening_pig_id` IS included (unlike `NewFarrowing`'s `sow_id`, which is
+ * also required) because the caller must always target an existing pig.
+ */
+export type NewWeightCheckin = Omit<
+  TablesInsert<"weight_checkins">,
+  "user_id" | "id" | "created_at" | "updated_at"
+>;
+
+/**
+ * Editable weight-checkin fields for edit. `weight_checkins` is fully
+ * editable/deletable (not append-only) per user decision — see
+ * `sdd/control-peso-engorde/design` revision 2 — so both fields recorded at
+ * creation may also be corrected later.
+ */
+export type WeightCheckinUpdate = Pick<
+  TablesUpdate<"weight_checkins">,
+  "checkin_date" | "weight"
+>;
+
+/**
+ * Lists a pig's weight check-ins in chronological order (oldest first),
+ * forming the growth curve (spec: "View Weight History / Growth Curve").
+ * No explicit `user_id` filter — visibility is scoped by the
+ * `weight_checkins_select_own` RLS policy, same pattern as
+ * `listFarrowingsForSow`.
+ */
+export async function listWeightCheckinsForPig(
+  supabase: SupabaseDb,
+  fatteningPigId: string,
+): Promise<WeightCheckin[]> {
+  const { data, error } = await supabase
+    .from("weight_checkins")
+    .select("*")
+    .eq("fattening_pig_id", fatteningPigId)
+    .order("checkin_date", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Records a new weight check-in for a pig (spec: "Record Weight
+ * Check-in"). Each call inserts a new row; nothing here overwrites a prior
+ * check-in.
+ */
+export async function createWeightCheckin(
+  supabase: SupabaseDb,
+  input: NewWeightCheckin,
+): Promise<WeightCheckin> {
+  const { data, error } = await supabase
+    .from("weight_checkins")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Corrects a previously recorded check-in's date/weight in place. Same
+ * pg-safeupdate contract as `markFatteningPigSold`: a bare `.eq('id', id)`
+ * filter alone satisfies Supabase's "UPDATE requires a WHERE clause"
+ * requirement — `id` is already a unique per-row target, and RLS still
+ * scopes which rows are visible to update in the first place.
+ */
+export async function updateWeightCheckin(
+  supabase: SupabaseDb,
+  id: string,
+  input: WeightCheckinUpdate,
+): Promise<WeightCheckin> {
+  const { data, error } = await supabase
+    .from("weight_checkins")
+    .update(input)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Deletes a mistyped/unwanted check-in. Supabase's pg-safeupdate extension
+ * also rejects a DELETE with no WHERE clause, same as UPDATE — the
+ * `.eq('id', id)` filter here is mandatory for that reason (not just a
+ * defensive ownership check; RLS already scopes which rows are visible).
+ */
+export async function deleteWeightCheckin(
+  supabase: SupabaseDb,
+  id: string,
+): Promise<void> {
+  const { error } = await supabase.from("weight_checkins").delete().eq("id", id);
+
+  if (error) throw error;
+}
