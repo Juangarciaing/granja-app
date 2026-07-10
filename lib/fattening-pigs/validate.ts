@@ -1,13 +1,13 @@
 export type FatteningPigFormValues = {
-  arete: string;
-  fecha_ingreso: string;
-  peso_inicial: number;
+  ear_tag: string;
+  entry_date: string;
+  entry_weight: number;
 };
 
 export type FatteningPigFormErrors = {
-  arete?: string;
-  fecha_ingreso?: string;
-  peso_inicial?: string;
+  ear_tag?: string;
+  entry_date?: string;
+  entry_weight?: string;
 };
 
 export type ParseFatteningPigFormResult =
@@ -18,9 +18,9 @@ export type ParseFatteningPigFormResult =
  * Pure parser/validator for the "register fattening pig" form. Kept
  * side-effect-free (no Next.js/Supabase imports) so it is trivially
  * unit-testable, mirroring `lib/sows/validate.ts`. Per spec "Register
- * Fattening Pig": `arete`, `fecha_ingreso` and `peso_inicial` are all
- * required, and `peso_inicial` must be a positive number — the DB-level
- * `check (peso_inicial > 0)` constraint (migration 0003) is a defense in
+ * Fattening Pig": `ear_tag`, `entry_date` and `entry_weight` are all
+ * required, and `entry_weight` must be a positive number — the DB-level
+ * `check (entry_weight > 0)` constraint (migration 0003) is a defense in
  * depth, not a substitute for this app-level validation.
  */
 export function parseFatteningPigForm(
@@ -28,25 +28,25 @@ export function parseFatteningPigForm(
 ): ParseFatteningPigFormResult {
   const errors: FatteningPigFormErrors = {};
 
-  const arete = String(formData.get("arete") ?? "").trim();
-  if (!arete) {
-    errors.arete = "El arete es obligatorio.";
+  const ear_tag = String(formData.get("ear_tag") ?? "").trim();
+  if (!ear_tag) {
+    errors.ear_tag = "El ear_tag es obligatorio.";
   }
 
-  const fecha_ingreso = String(formData.get("fecha_ingreso") ?? "").trim();
-  if (!fecha_ingreso) {
-    errors.fecha_ingreso = "La fecha de ingreso es obligatoria.";
+  const entry_date = String(formData.get("entry_date") ?? "").trim();
+  if (!entry_date) {
+    errors.entry_date = "La fecha de ingreso es obligatoria.";
   }
 
-  const pesoInicialRaw = String(formData.get("peso_inicial") ?? "").trim();
-  const peso_inicial = Number(pesoInicialRaw);
-  if (pesoInicialRaw === "" || !Number.isFinite(peso_inicial) || peso_inicial <= 0) {
-    errors.peso_inicial = "El peso inicial debe ser un número mayor a 0.";
+  const entryWeightRaw = String(formData.get("entry_weight") ?? "").trim();
+  const entry_weight = Number(entryWeightRaw);
+  if (entryWeightRaw === "" || !Number.isFinite(entry_weight) || entry_weight <= 0) {
+    errors.entry_weight = "El peso inicial debe ser un número mayor a 0.";
   }
 
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
 
-  return { ok: true, value: { arete, fecha_ingreso, peso_inicial } };
+  return { ok: true, value: { ear_tag, entry_date, entry_weight } };
 }

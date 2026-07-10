@@ -400,16 +400,16 @@ describe("updateFeedingConfig", () => {
 const sampleFatteningPig: FatteningPig = {
   id: "pig-1",
   user_id: "user-1",
-  arete: "A12",
-  fecha_ingreso: "2026-07-01",
-  peso_inicial: 18.5,
-  fecha_salida: null,
+  ear_tag: "A12",
+  entry_date: "2026-07-01",
+  entry_weight: 18.5,
+  exit_date: null,
   created_at: "2026-07-01T00:00:00Z",
   updated_at: "2026-07-01T00:00:00Z",
 };
 
 describe("listActiveFatteningPigs", () => {
-  it("selects only pigs with no fecha_salida, newest first, without an explicit user_id filter", async () => {
+  it("selects only pigs with no exit_date, newest first, without an explicit user_id filter", async () => {
     const { supabase, calls } = fakeSupabase({
       data: [sampleFatteningPig],
       error: null,
@@ -421,7 +421,7 @@ describe("listActiveFatteningPigs", () => {
     expect(calls).toEqual([
       { method: "from", args: ["fattening_pigs"] },
       { method: "select", args: ["*"] },
-      { method: "is", args: ["fecha_salida", null] },
+      { method: "is", args: ["exit_date", null] },
       { method: "order", args: ["created_at", { ascending: false }] },
     ]);
     // Farm isolation relies on RLS (auth.uid() = user_id), never an
@@ -463,62 +463,62 @@ describe("getFatteningPig", () => {
 });
 
 describe("createFatteningPig", () => {
-  it("inserts only the editable fields, never a caller-supplied user_id or fecha_salida", async () => {
+  it("inserts only the editable fields, never a caller-supplied user_id or exit_date", async () => {
     const { supabase, calls } = fakeSupabase({
       data: sampleFatteningPig,
       error: null,
     });
 
     const result = await createFatteningPig(supabase, {
-      arete: "A12",
-      fecha_ingreso: "2026-07-01",
-      peso_inicial: 18.5,
+      ear_tag: "A12",
+      entry_date: "2026-07-01",
+      entry_weight: 18.5,
     });
 
     expect(result).toEqual(sampleFatteningPig);
     const insertCall = calls.find((call) => call.method === "insert");
     expect(insertCall?.args[0]).toEqual({
-      arete: "A12",
-      fecha_ingreso: "2026-07-01",
-      peso_inicial: 18.5,
+      ear_tag: "A12",
+      entry_date: "2026-07-01",
+      entry_weight: 18.5,
     });
     expect(insertCall?.args[0]).not.toHaveProperty("user_id");
-    expect(insertCall?.args[0]).not.toHaveProperty("fecha_salida");
+    expect(insertCall?.args[0]).not.toHaveProperty("exit_date");
   });
 
-  it("propagates a duplicate-arete unique-violation error instead of swallowing it (spec: Duplicate arete for same user)", async () => {
+  it("propagates a duplicate-ear_tag unique-violation error instead of swallowing it (spec: Duplicate ear_tag for same user)", async () => {
     const { supabase } = fakeSupabase({
       data: null,
       error: {
         code: "23505",
         message:
-          'duplicate key value violates unique constraint "fattening_pigs_active_arete_per_user"',
+          'duplicate key value violates unique constraint "fattening_pigs_active_ear_tag_per_user"',
       },
     });
 
     await expect(
       createFatteningPig(supabase, {
-        arete: "A12",
-        fecha_ingreso: "2026-07-01",
-        peso_inicial: 18.5,
+        ear_tag: "A12",
+        entry_date: "2026-07-01",
+        entry_weight: 18.5,
       }),
     ).rejects.toMatchObject({ code: "23505" });
   });
 });
 
 describe("markFatteningPigSold", () => {
-  it("sets fecha_salida for the given id, scoped only by eq('id', id) — no extra user_id filter needed", async () => {
+  it("sets exit_date for the given id, scoped only by eq('id', id) — no extra user_id filter needed", async () => {
     const { supabase, calls } = fakeSupabase({
-      data: { ...sampleFatteningPig, fecha_salida: "2026-08-01" },
+      data: { ...sampleFatteningPig, exit_date: "2026-08-01" },
       error: null,
     });
 
     const result = await markFatteningPigSold(supabase, "pig-1", "2026-08-01");
 
-    expect(result.fecha_salida).toBe("2026-08-01");
+    expect(result.exit_date).toBe("2026-08-01");
     expect(calls).toEqual([
       { method: "from", args: ["fattening_pigs"] },
-      { method: "update", args: [{ fecha_salida: "2026-08-01" }] },
+      { method: "update", args: [{ exit_date: "2026-08-01" }] },
       { method: "eq", args: ["id", "pig-1"] },
       { method: "select", args: [] },
       { method: "single", args: [] },

@@ -32,10 +32,10 @@ export default async function FatteningPigsPage() {
                   href={`/fattening-pigs/${pig.id}`}
                   className="font-medium hover:underline"
                 >
-                  {pig.arete}
+                  {pig.ear_tag}
                 </Link>
                 <p className="text-sm text-zinc-500">
-                  Ingreso: {pig.fecha_ingreso} · Peso inicial: {pig.peso_inicial} kg
+                  Ingreso: {pig.entry_date} · Peso inicial: {pig.entry_weight} kg
                 </p>
               </div>
             </li>

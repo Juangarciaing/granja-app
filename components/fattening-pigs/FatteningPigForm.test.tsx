@@ -6,7 +6,7 @@ import { FatteningPigForm } from "@/components/fattening-pigs/FatteningPigForm";
 import type { FatteningPigActionState } from "@/lib/fattening-pigs/form-state";
 
 describe("FatteningPigForm", () => {
-  it("renders the arete, entry date and entry weight fields with a submit button", () => {
+  it("renders the ear_tag, entry date and entry weight fields with a submit button", () => {
     render(
       <FatteningPigForm
         action={vi.fn(
@@ -48,16 +48,16 @@ describe("FatteningPigForm", () => {
     await vi.waitFor(() => expect(action).toHaveBeenCalled());
 
     const submittedFormData = action.mock.calls[0][1];
-    expect(submittedFormData.get("arete")).toBe("A12");
-    expect(submittedFormData.get("fecha_ingreso")).toBe("2026-07-01");
-    expect(submittedFormData.get("peso_inicial")).toBe("18.5");
+    expect(submittedFormData.get("ear_tag")).toBe("A12");
+    expect(submittedFormData.get("entry_date")).toBe("2026-07-01");
+    expect(submittedFormData.get("entry_weight")).toBe("18.5");
   });
 
-  it("displays the arete validation error returned by the action", async () => {
+  it("displays the ear_tag validation error returned by the action", async () => {
     const action = vi.fn(
       async () =>
         ({
-          errors: { arete: "El arete es obligatorio." },
+          errors: { ear_tag: "El ear_tag es obligatorio." },
         }) satisfies FatteningPigActionState,
     );
     const user = userEvent.setup();
@@ -67,7 +67,7 @@ describe("FatteningPigForm", () => {
     await user.click(screen.getByRole("button", { name: "Registrar" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "El arete es obligatorio.",
+      "El ear_tag es obligatorio.",
     );
   });
 });

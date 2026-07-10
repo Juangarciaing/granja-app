@@ -19,13 +19,13 @@ export default async function FatteningPigDetailPage({
     notFound();
   }
 
-  const isActive = pig.fecha_salida === null;
+  const isActive = pig.exit_date === null;
   const boundMarkSoldAction = markFatteningPigSoldAction.bind(null, id);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{pig.arete}</h1>
+        <h1 className="text-2xl font-semibold">{pig.ear_tag}</h1>
         {isActive && (
           <form action={boundMarkSoldAction}>
             <button type="submit" className="rounded border px-3 py-1 text-sm">
@@ -38,15 +38,15 @@ export default async function FatteningPigDetailPage({
       <dl className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between">
           <dt className="text-zinc-500">Fecha de ingreso</dt>
-          <dd>{pig.fecha_ingreso}</dd>
+          <dd>{pig.entry_date}</dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-zinc-500">Peso inicial</dt>
-          <dd>{pig.peso_inicial} kg</dd>
+          <dd>{pig.entry_weight} kg</dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-zinc-500">Estado</dt>
-          <dd>{isActive ? "Activo" : `Vendido (${pig.fecha_salida})`}</dd>
+          <dd>{isActive ? "Activo" : `Vendido (${pig.exit_date})`}</dd>
         </div>
       </dl>
 

@@ -15,8 +15,8 @@ export type { FatteningPigActionState } from "@/lib/fattening-pigs/form-state";
  * happens in the pure, unit-tested `parseFatteningPigForm` first; the
  * Supabase mutation itself relies on RLS (`fattening_pigs.user_id default
  * auth.uid()`) for farm-scoped ownership and on the partial unique index
- * `fattening_pigs_active_arete_per_user` (migration 0003) to reject a
- * duplicate active arete — no `user_id` is ever read from the form or set
+ * `fattening_pigs_active_ear_tag_per_user` (migration 0003) to reject a
+ * duplicate active ear_tag — no `user_id` is ever read from the form or set
  * here, mirroring `createSowAction`.
  */
 export async function createFatteningPigAction(

@@ -267,18 +267,18 @@ export type FatteningPig = Tables<"fattening_pigs">;
 
 /**
  * Editable fattening-pig fields for registration. `user_id`, `id`,
- * `created_at`/`updated_at` and `fecha_salida` are intentionally excluded:
+ * `created_at`/`updated_at` and `exit_date` are intentionally excluded:
  * `user_id` is assigned by RLS default (same ownership contract as `NewSow`),
- * and `fecha_salida` is only ever set later via `markFatteningPigSold` —
+ * and `exit_date` is only ever set later via `markFatteningPigSold` —
  * there is no "pre-sold" registration path (spec: "Register Fattening Pig").
  */
 export type NewFatteningPig = Omit<
   TablesInsert<"fattening_pigs">,
-  "user_id" | "id" | "created_at" | "updated_at" | "fecha_salida"
+  "user_id" | "id" | "created_at" | "updated_at" | "exit_date"
 >;
 
 /**
- * Lists pigs still under active tracking (`fecha_salida is null`), newest
+ * Lists pigs still under active tracking (`exit_date is null`), newest
  * first. No explicit `user_id` filter — visibility is scoped by the
  * `fattening_pigs_select_own` RLS policy, same pattern as `listSows` (spec:
  * "Mark Pig as Sold/Exited" — sold pigs must not appear in the active list).
@@ -289,7 +289,7 @@ export async function listActiveFatteningPigs(
   const { data, error } = await supabase
     .from("fattening_pigs")
     .select("*")
-    .is("fecha_salida", null)
+    .is("exit_date", null)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -311,9 +311,9 @@ export async function getFatteningPig(
 }
 
 /**
- * Registers a new fattening pig. Per spec "Duplicate arete for same user",
- * a second active pig with the same `arete` is rejected — enforced by the
- * partial unique index `fattening_pigs_active_arete_per_user` (migration
+ * Registers a new fattening pig. Per spec "Duplicate ear_tag for same user",
+ * a second active pig with the same `ear_tag` is rejected — enforced by the
+ * partial unique index `fattening_pigs_active_ear_tag_per_user` (migration
  * 0003), whose Postgres unique-violation error (code `23505`) is propagated
  * here rather than swallowed, same "trust the DB, don't duplicate it"
  * contract as the other query functions' error handling.
@@ -333,7 +333,7 @@ export async function createFatteningPig(
 }
 
 /**
- * Marks a pig as sold/exited by setting `fecha_salida`, mirroring
+ * Marks a pig as sold/exited by setting `exit_date`, mirroring
  * `weanFarrowing`. Unlike `updateFeedingConfig`'s singleton-table special
  * case, a bare `.eq('id', id)` filter alone is sufficient to satisfy
  * Supabase's pg-safeupdate "UPDATE requires a WHERE clause" requirement —
@@ -344,11 +344,11 @@ export async function createFatteningPig(
 export async function markFatteningPigSold(
   supabase: SupabaseDb,
   id: string,
-  fechaSalida: string,
+  exitDate: string,
 ): Promise<FatteningPig> {
   const { data, error } = await supabase
     .from("fattening_pigs")
-    .update({ fecha_salida: fechaSalida })
+    .update({ exit_date: exitDate })
     .eq("id", id)
     .select()
     .single();

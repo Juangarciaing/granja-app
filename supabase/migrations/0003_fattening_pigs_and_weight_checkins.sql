@@ -2,7 +2,7 @@
 -- Tables: fattening_pigs, weight_checkins
 -- Ownership model: same as module 1, `user_id = auth.uid()` (see
 -- supabase/migrations/0001_init.sql). Column names follow the spec's own
--- domain vocabulary (arete, fecha_ingreso, peso_inicial, fecha, peso)
+-- domain vocabulary (ear_tag, entry_date, entry_weight, checkin_date, weight)
 -- rather than translating them, since the spec and tasks artifacts for this
 -- module define these as the literal field identifiers, not just UI copy.
 --
@@ -20,13 +20,13 @@
 create table if not exists public.fattening_pigs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  arete text not null,
-  fecha_ingreso date not null,
-  peso_inicial numeric(6, 2) not null check (peso_inicial > 0),
+  ear_tag text not null,
+  entry_date date not null,
+  entry_weight numeric(6, 2) not null check (entry_weight > 0),
   -- Exit/sold marker, mirrors farrowings.weaning_date: set once the pig is
   -- sold/exited, removing it from active tracking without deleting its row
   -- or its weight_checkins history (spec: "Mark Pig as Sold/Exited").
-  fecha_salida date,
+  exit_date date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -35,12 +35,12 @@ comment on table public.fattening_pigs is 'Individually ear-tagged fattening pig
 
 create index if not exists fattening_pigs_user_id_idx on public.fattening_pigs (user_id);
 
--- Spec: "Duplicate arete for same user" is only rejected while the earlier
--- pig with that arete is still active (fecha_salida is null) — a sold pig's
--- arete may be reused by a new pig entering the herd.
-create unique index if not exists fattening_pigs_active_arete_per_user
-  on public.fattening_pigs (user_id, arete)
-  where (fecha_salida is null);
+-- Spec: "Duplicate ear_tag for same user" is only rejected while the earlier
+-- pig with that ear_tag is still active (exit_date is null) — a sold pig's
+-- ear_tag may be reused by a new pig entering the herd.
+create unique index if not exists fattening_pigs_active_ear_tag_per_user
+  on public.fattening_pigs (user_id, ear_tag)
+  where (exit_date is null);
 
 alter table public.fattening_pigs enable row level security;
 
@@ -66,9 +66,9 @@ create trigger fattening_pigs_set_updated_at
 create table if not exists public.weight_checkins (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  pig_id uuid not null references public.fattening_pigs (id) on delete cascade,
-  fecha date not null,
-  peso numeric(6, 2) not null check (peso > 0),
+  fattening_pig_id uuid not null references public.fattening_pigs (id) on delete cascade,
+  checkin_date date not null,
+  weight numeric(6, 2) not null check (weight > 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -76,7 +76,7 @@ create table if not exists public.weight_checkins (
 comment on table public.weight_checkins is 'Chronological weigh-in log per fattening pig, forming its growth curve. Editable/deletable (not append-only) so a mistyped weigh-in can be corrected — see table comment history in sdd/control-peso-engorde/design.';
 
 create index if not exists weight_checkins_user_id_idx on public.weight_checkins (user_id);
-create index if not exists weight_checkins_pig_id_idx on public.weight_checkins (pig_id);
+create index if not exists weight_checkins_fattening_pig_id_idx on public.weight_checkins (fattening_pig_id);
 
 alter table public.weight_checkins enable row level security;
 

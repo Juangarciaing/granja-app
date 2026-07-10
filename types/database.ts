@@ -88,32 +88,32 @@ export type Database = {
       }
       fattening_pigs: {
         Row: {
-          arete: string
           created_at: string
-          fecha_ingreso: string
-          fecha_salida: string | null
+          ear_tag: string
+          entry_date: string
+          entry_weight: number
+          exit_date: string | null
           id: string
-          peso_inicial: number
           updated_at: string
           user_id: string
         }
         Insert: {
-          arete: string
           created_at?: string
-          fecha_ingreso: string
-          fecha_salida?: string | null
+          ear_tag: string
+          entry_date: string
+          entry_weight: number
+          exit_date?: string | null
           id?: string
-          peso_inicial: number
           updated_at?: string
           user_id?: string
         }
         Update: {
-          arete?: string
           created_at?: string
-          fecha_ingreso?: string
-          fecha_salida?: string | null
+          ear_tag?: string
+          entry_date?: string
+          entry_weight?: number
+          exit_date?: string | null
           id?: string
-          peso_inicial?: number
           updated_at?: string
           user_id?: string
         }
@@ -178,36 +178,36 @@ export type Database = {
       }
       weight_checkins: {
         Row: {
+          checkin_date: string
           created_at: string
-          fecha: string
+          fattening_pig_id: string
           id: string
-          peso: number
-          pig_id: string
           updated_at: string
           user_id: string
+          weight: number
         }
         Insert: {
+          checkin_date: string
           created_at?: string
-          fecha: string
+          fattening_pig_id: string
           id?: string
-          peso: number
-          pig_id: string
           updated_at?: string
           user_id?: string
+          weight: number
         }
         Update: {
+          checkin_date?: string
           created_at?: string
-          fecha?: string
+          fattening_pig_id?: string
           id?: string
-          peso?: number
-          pig_id?: string
           updated_at?: string
           user_id?: string
+          weight?: number
         }
         Relationships: [
           {
-            foreignKeyName: "weight_checkins_pig_id_fkey"
-            columns: ["pig_id"]
+            foreignKeyName: "weight_checkins_fattening_pig_id_fkey"
+            columns: ["fattening_pig_id"]
             isOneToOne: false
             referencedRelation: "fattening_pigs"
             referencedColumns: ["id"]

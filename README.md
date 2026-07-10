@@ -50,7 +50,7 @@ app can run against a real backend:
    - `0003_fattening_pigs_and_weight_checkins.sql` — creates
      `fattening_pigs` and `weight_checkins` (module 2), both with full
      select/insert/update/delete RLS, plus the partial unique index that
-     rejects a duplicate active `arete` per user.
+     rejects a duplicate active `ear_tag` per user.
 5. Regenerate the typed schema (replaces the hand-authored placeholder at
    `types/database.ts`):
    ```bash

@@ -12,95 +12,95 @@ function formData(fields: Record<string, string>): FormData {
 describe("parseFatteningPigForm", () => {
   it("accepts a valid form", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "A12", fecha_ingreso: "2026-07-01", peso_inicial: "18.5" }),
+      formData({ ear_tag: "A12", entry_date: "2026-07-01", entry_weight: "18.5" }),
     );
 
     expect(result).toEqual({
       ok: true,
-      value: { arete: "A12", fecha_ingreso: "2026-07-01", peso_inicial: 18.5 },
+      value: { ear_tag: "A12", entry_date: "2026-07-01", entry_weight: 18.5 },
     });
   });
 
-  it("trims the arete", () => {
+  it("trims the ear_tag", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "  A12  ", fecha_ingreso: "2026-07-01", peso_inicial: "18.5" }),
+      formData({ ear_tag: "  A12  ", entry_date: "2026-07-01", entry_weight: "18.5" }),
     );
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.arete).toBe("A12");
+      expect(result.value.ear_tag).toBe("A12");
     }
   });
 
-  it("rejects a missing arete", () => {
+  it("rejects a missing ear_tag", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "", fecha_ingreso: "2026-07-01", peso_inicial: "18.5" }),
+      formData({ ear_tag: "", entry_date: "2026-07-01", entry_weight: "18.5" }),
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.arete).toBe("El arete es obligatorio.");
+      expect(result.errors.ear_tag).toBe("El ear_tag es obligatorio.");
     }
   });
 
-  it("rejects a whitespace-only arete", () => {
+  it("rejects a whitespace-only ear_tag", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "   ", fecha_ingreso: "2026-07-01", peso_inicial: "18.5" }),
+      formData({ ear_tag: "   ", entry_date: "2026-07-01", entry_weight: "18.5" }),
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.arete).toBe("El arete es obligatorio.");
+      expect(result.errors.ear_tag).toBe("El ear_tag es obligatorio.");
     }
   });
 
-  it("rejects a missing fecha_ingreso", () => {
+  it("rejects a missing entry_date", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "A12", fecha_ingreso: "", peso_inicial: "18.5" }),
+      formData({ ear_tag: "A12", entry_date: "", entry_weight: "18.5" }),
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.fecha_ingreso).toBe(
+      expect(result.errors.entry_date).toBe(
         "La fecha de ingreso es obligatoria.",
       );
     }
   });
 
-  it("rejects a non-numeric peso_inicial", () => {
+  it("rejects a non-numeric entry_weight", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "A12", fecha_ingreso: "2026-07-01", peso_inicial: "abc" }),
+      formData({ ear_tag: "A12", entry_date: "2026-07-01", entry_weight: "abc" }),
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.peso_inicial).toBe(
+      expect(result.errors.entry_weight).toBe(
         "El peso inicial debe ser un número mayor a 0.",
       );
     }
   });
 
-  it("rejects a zero peso_inicial", () => {
+  it("rejects a zero entry_weight", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "A12", fecha_ingreso: "2026-07-01", peso_inicial: "0" }),
+      formData({ ear_tag: "A12", entry_date: "2026-07-01", entry_weight: "0" }),
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.peso_inicial).toBe(
+      expect(result.errors.entry_weight).toBe(
         "El peso inicial debe ser un número mayor a 0.",
       );
     }
   });
 
-  it("rejects a negative peso_inicial", () => {
+  it("rejects a negative entry_weight", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "A12", fecha_ingreso: "2026-07-01", peso_inicial: "-5" }),
+      formData({ ear_tag: "A12", entry_date: "2026-07-01", entry_weight: "-5" }),
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.peso_inicial).toBe(
+      expect(result.errors.entry_weight).toBe(
         "El peso inicial debe ser un número mayor a 0.",
       );
     }
@@ -108,15 +108,15 @@ describe("parseFatteningPigForm", () => {
 
   it("reports all field errors together when everything is invalid", () => {
     const result = parseFatteningPigForm(
-      formData({ arete: "", fecha_ingreso: "", peso_inicial: "" }),
+      formData({ ear_tag: "", entry_date: "", entry_weight: "" }),
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.errors).toEqual({
-        arete: "El arete es obligatorio.",
-        fecha_ingreso: "La fecha de ingreso es obligatoria.",
-        peso_inicial: "El peso inicial debe ser un número mayor a 0.",
+        ear_tag: "El ear_tag es obligatorio.",
+        entry_date: "La fecha de ingreso es obligatoria.",
+        entry_weight: "El peso inicial debe ser un número mayor a 0.",
       });
     }
   });
