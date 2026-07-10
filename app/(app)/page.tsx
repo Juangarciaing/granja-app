@@ -1,14 +1,27 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
+import { getAuthRedirect } from "@/lib/auth/guard";
 import { buildFeedSummary } from "@/lib/dashboard/feed-summary";
 import { getFeedingConfig, listActiveFarrowings, listSows } from "@/lib/db/queries";
 import { createClient } from "@/lib/supabase/server";
+
+const LOGIN_PATH = "/login";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Redundant with the (app) layout's own auth guard, but deliberately not
+  // relying on it alone: RSC can start this page's data-fetch concurrently
+  // with the layout's redirect(), and an unauthenticated Promise.all below
+  // would hit RLS-empty rows and throw PGRST116 before the redirect wins.
+  const redirectTo = getAuthRedirect(user, LOGIN_PATH);
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
 
   // Live daily-feed summary: config + active (non-weaned) farrowings are
   // re-read on every request and recomputed via calcDailyFeed — there is no
