@@ -232,17 +232,30 @@ export async function getFeedingConfig(
 /**
  * Overwrites `base_kg`/`kg_per_piglet` on the current row in place. Per spec
  * "Edit Feeding Config", there is no versioning/history — this update never
- * touches `id`/`user_id`, and the previous values are not retained anywhere
- * (no separate insert, no audit table). No `eq` filter is needed for the
- * same singleton-scoped-by-RLS reason as `getFeedingConfig`.
+ * touches `id`/`user_id` in its input payload, and the previous values are
+ * not retained anywhere (no separate insert, no audit table).
+ *
+ * The `eq("user_id", ...)` filter below is NOT a redundant ownership check
+ * duplicating RLS — it's required because Supabase enables the pg-safeupdate
+ * extension by default, which rejects any UPDATE with no WHERE clause at the
+ * DB level ("UPDATE requires a WHERE clause"), even when RLS alone would
+ * already scope the statement to exactly one row.
  */
 export async function updateFeedingConfig(
   supabase: SupabaseDb,
   input: FeedingConfigUpdate,
 ): Promise<FeedingConfigRow> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("updateFeedingConfig requires an authenticated user");
+  }
+
   const { data, error } = await supabase
     .from("feeding_config")
     .update(input)
+    .eq("user_id", user.id)
     .select()
     .single();
 

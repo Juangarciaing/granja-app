@@ -65,7 +65,14 @@ function fakeSupabase(response: { data: unknown; error: unknown }) {
     return builder;
   });
 
-  const supabase = { from } as unknown as SupabaseClient<Database>;
+  const auth = {
+    getUser: vi.fn(async () => ({
+      data: { user: { id: "user-1" } },
+      error: null,
+    })),
+  };
+
+  const supabase = { from, auth } as unknown as SupabaseClient<Database>;
   return { supabase, calls };
 }
 
@@ -369,14 +376,16 @@ describe("updateFeedingConfig", () => {
     expect(updateCall?.args[0]).toEqual({ base_kg: 2.5, kg_per_piglet: 0.5 });
     expect(updateCall?.args[0]).not.toHaveProperty("id");
     expect(updateCall?.args[0]).not.toHaveProperty("user_id");
+    // Supabase's pg-safeupdate extension rejects any UPDATE with no WHERE
+    // clause at the DB level, even when RLS alone would already scope it to
+    // exactly one row — an explicit `user_id` filter is mandatory here, not
+    // just a defensive/redundant ownership check.
     expect(calls).toEqual([
       { method: "from", args: ["feeding_config"] },
       { method: "update", args: [{ base_kg: 2.5, kg_per_piglet: 0.5 }] },
+      { method: "eq", args: ["user_id", "user-1"] },
       { method: "select", args: [] },
       { method: "single", args: [] },
     ]);
-    // No `eq`/id filter, same singleton-scoped-by-RLS contract as
-    // getFeedingConfig — there is only ever one reachable row to update.
-    expect(calls.some((call) => call.method === "eq")).toBe(false);
   });
 });
