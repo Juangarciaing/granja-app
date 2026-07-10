@@ -1,12 +1,15 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { updateSowAction } from "@/app/(app)/sows/actions";
 import { updateCounterAction, weanFarrowingAction } from "@/app/(app)/farrowings/actions";
 import { PigletCounter } from "@/components/farrowings/PigletCounter";
 import { SowForm } from "@/components/sows/SowForm";
+import { getAuthRedirect } from "@/lib/auth/guard";
 import { getSow, listFarrowingsForSow } from "@/lib/db/queries";
 import { createClient } from "@/lib/supabase/server";
+
+const LOGIN_PATH = "/login";
 
 type SowDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -21,6 +24,14 @@ const FARROWING_STATUS_LABELS: Record<string, string> = {
 export default async function SowDetailPage({ params }: SowDetailPageProps) {
   const { id } = await params;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const redirectTo = getAuthRedirect(user, LOGIN_PATH);
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
 
   const sow = await getSow(supabase, id).catch(() => null);
   if (!sow) {

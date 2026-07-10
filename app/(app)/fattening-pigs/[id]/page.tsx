@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { markFatteningPigSoldAction } from "@/app/(app)/fattening-pigs/actions";
 import {
@@ -8,8 +8,11 @@ import {
 } from "@/app/(app)/fattening-pigs/[id]/actions";
 import { WeightCheckinForm } from "@/components/weight-checkins/WeightCheckinForm";
 import { WeightCheckinRow } from "@/components/weight-checkins/WeightCheckinRow";
+import { getAuthRedirect } from "@/lib/auth/guard";
 import { getFatteningPig, listWeightCheckinsForPig } from "@/lib/db/queries";
 import { createClient } from "@/lib/supabase/server";
+
+const LOGIN_PATH = "/login";
 
 type FatteningPigDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -20,6 +23,14 @@ export default async function FatteningPigDetailPage({
 }: FatteningPigDetailPageProps) {
   const { id } = await params;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const redirectTo = getAuthRedirect(user, LOGIN_PATH);
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
 
   const pig = await getFatteningPig(supabase, id).catch(() => null);
   if (!pig) {

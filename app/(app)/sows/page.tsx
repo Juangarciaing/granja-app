@@ -1,7 +1,11 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
+import { getAuthRedirect } from "@/lib/auth/guard";
 import { listSows } from "@/lib/db/queries";
 import { createClient } from "@/lib/supabase/server";
+
+const LOGIN_PATH = "/login";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Activa",
@@ -12,6 +16,15 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default async function SowsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const redirectTo = getAuthRedirect(user, LOGIN_PATH);
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
+
   const sows = await listSows(supabase);
 
   return (
