@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { Database, Tables, TablesInsert } from "@/types/database";
+import type { Database, Tables, TablesInsert, TablesUpdate } from "@/types/database";
 
 export type Sow = Tables<"sows">;
 
@@ -194,4 +194,58 @@ export async function listActiveFarrowings(
 
   if (error) throw error;
   return data ?? [];
+}
+
+export type FeedingConfigRow = Tables<"feeding_config">;
+
+/**
+ * Editable fields for the feeding config edit form. `id`, `user_id` and
+ * `updated_at` are excluded: `user_id` is assigned by RLS default (same
+ * ownership contract as `NewSow`/`NewFarrowing`), and there is exactly one
+ * row per user (PR1's auto-provisioning trigger + `feeding_config.user_id
+ * unique` constraint), so there is never a caller-supplied id to target.
+ */
+export type FeedingConfigUpdate = Pick<
+  TablesUpdate<"feeding_config">,
+  "base_kg" | "kg_per_piglet"
+>;
+
+/**
+ * Fetches the single current feeding-config row for the session. No
+ * explicit `user_id`/`id` filter is applied — PR1's auto-provisioning
+ * trigger plus the `user_id unique` constraint guarantee exactly one row is
+ * ever visible under RLS, so "select the row" and "select my row" are the
+ * same query (spec: "Single Current Feeding Config").
+ */
+export async function getFeedingConfig(
+  supabase: SupabaseDb,
+): Promise<FeedingConfigRow> {
+  const { data, error } = await supabase
+    .from("feeding_config")
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Overwrites `base_kg`/`kg_per_piglet` on the current row in place. Per spec
+ * "Edit Feeding Config", there is no versioning/history — this update never
+ * touches `id`/`user_id`, and the previous values are not retained anywhere
+ * (no separate insert, no audit table). No `eq` filter is needed for the
+ * same singleton-scoped-by-RLS reason as `getFeedingConfig`.
+ */
+export async function updateFeedingConfig(
+  supabase: SupabaseDb,
+  input: FeedingConfigUpdate,
+): Promise<FeedingConfigRow> {
+  const { data, error } = await supabase
+    .from("feeding_config")
+    .update(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }

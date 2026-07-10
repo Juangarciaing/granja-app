@@ -5,11 +5,13 @@ import {
   createFarrowing,
   createSow,
   getFarrowing,
+  getFeedingConfig,
   getSow,
   listActiveFarrowings,
   listFarrowingsForSow,
   listSows,
   updateFarrowingCounter,
+  updateFeedingConfig,
   updateSow,
   weanFarrowing,
 } from "@/lib/db/queries";
@@ -17,6 +19,7 @@ import type { Database, Tables } from "@/types/database";
 
 type Sow = Tables<"sows">;
 type Farrowing = Tables<"farrowings">;
+type FeedingConfigRow = Tables<"feeding_config">;
 type Call = { method: string; args: unknown[] };
 
 /**
@@ -315,5 +318,65 @@ describe("listActiveFarrowings", () => {
       { method: "select", args: ["*"] },
       { method: "eq", args: ["status", "lactating"] },
     ]);
+  });
+});
+
+const sampleFeedingConfig: FeedingConfigRow = {
+  id: "config-1",
+  user_id: "user-1",
+  base_kg: 2,
+  kg_per_piglet: 0.4,
+  updated_at: "2026-01-01T00:00:00Z",
+};
+
+describe("getFeedingConfig", () => {
+  it("fetches the single current config row without any explicit user_id or id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleFeedingConfig,
+      error: null,
+    });
+
+    const result = await getFeedingConfig(supabase);
+
+    expect(result).toEqual(sampleFeedingConfig);
+    expect(calls).toEqual([
+      { method: "from", args: ["feeding_config"] },
+      { method: "select", args: ["*"] },
+      { method: "single", args: [] },
+    ]);
+    // Exactly one row is ever visible per user (unique user_id + RLS), so no
+    // extra filter is needed — same "trust RLS, don't duplicate it" contract
+    // as the sow/farrowing queries.
+    expect(calls.some((call) => call.method === "eq")).toBe(false);
+  });
+});
+
+describe("updateFeedingConfig", () => {
+  it("overwrites base_kg and kg_per_piglet on the current row in place — no history/versioning columns written", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleFeedingConfig, base_kg: 2.5, kg_per_piglet: 0.5 },
+      error: null,
+    });
+
+    const result = await updateFeedingConfig(supabase, {
+      base_kg: 2.5,
+      kg_per_piglet: 0.5,
+    });
+
+    expect(result.base_kg).toBe(2.5);
+    expect(result.kg_per_piglet).toBe(0.5);
+    const updateCall = calls.find((call) => call.method === "update");
+    expect(updateCall?.args[0]).toEqual({ base_kg: 2.5, kg_per_piglet: 0.5 });
+    expect(updateCall?.args[0]).not.toHaveProperty("id");
+    expect(updateCall?.args[0]).not.toHaveProperty("user_id");
+    expect(calls).toEqual([
+      { method: "from", args: ["feeding_config"] },
+      { method: "update", args: [{ base_kg: 2.5, kg_per_piglet: 0.5 }] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+    // No `eq`/id filter, same singleton-scoped-by-RLS contract as
+    // getFeedingConfig — there is only ever one reachable row to update.
+    expect(calls.some((call) => call.method === "eq")).toBe(false);
   });
 });
