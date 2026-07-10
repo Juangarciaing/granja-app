@@ -262,3 +262,97 @@ export async function updateFeedingConfig(
   if (error) throw error;
   return data;
 }
+
+export type FatteningPig = Tables<"fattening_pigs">;
+
+/**
+ * Editable fattening-pig fields for registration. `user_id`, `id`,
+ * `created_at`/`updated_at` and `fecha_salida` are intentionally excluded:
+ * `user_id` is assigned by RLS default (same ownership contract as `NewSow`),
+ * and `fecha_salida` is only ever set later via `markFatteningPigSold` —
+ * there is no "pre-sold" registration path (spec: "Register Fattening Pig").
+ */
+export type NewFatteningPig = Omit<
+  TablesInsert<"fattening_pigs">,
+  "user_id" | "id" | "created_at" | "updated_at" | "fecha_salida"
+>;
+
+/**
+ * Lists pigs still under active tracking (`fecha_salida is null`), newest
+ * first. No explicit `user_id` filter — visibility is scoped by the
+ * `fattening_pigs_select_own` RLS policy, same pattern as `listSows` (spec:
+ * "Mark Pig as Sold/Exited" — sold pigs must not appear in the active list).
+ */
+export async function listActiveFatteningPigs(
+  supabase: SupabaseDb,
+): Promise<FatteningPig[]> {
+  const { data, error } = await supabase
+    .from("fattening_pigs")
+    .select("*")
+    .is("fecha_salida", null)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getFatteningPig(
+  supabase: SupabaseDb,
+  id: string,
+): Promise<FatteningPig> {
+  const { data, error } = await supabase
+    .from("fattening_pigs")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Registers a new fattening pig. Per spec "Duplicate arete for same user",
+ * a second active pig with the same `arete` is rejected — enforced by the
+ * partial unique index `fattening_pigs_active_arete_per_user` (migration
+ * 0003), whose Postgres unique-violation error (code `23505`) is propagated
+ * here rather than swallowed, same "trust the DB, don't duplicate it"
+ * contract as the other query functions' error handling.
+ */
+export async function createFatteningPig(
+  supabase: SupabaseDb,
+  input: NewFatteningPig,
+): Promise<FatteningPig> {
+  const { data, error } = await supabase
+    .from("fattening_pigs")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Marks a pig as sold/exited by setting `fecha_salida`, mirroring
+ * `weanFarrowing`. Unlike `updateFeedingConfig`'s singleton-table special
+ * case, a bare `.eq('id', id)` filter alone is sufficient to satisfy
+ * Supabase's pg-safeupdate "UPDATE requires a WHERE clause" requirement —
+ * there is no need to additionally filter by `user_id` here, since `id` is
+ * already a unique per-row target (RLS still scopes which rows are visible
+ * to update in the first place).
+ */
+export async function markFatteningPigSold(
+  supabase: SupabaseDb,
+  id: string,
+  fechaSalida: string,
+): Promise<FatteningPig> {
+  const { data, error } = await supabase
+    .from("fattening_pigs")
+    .update({ fecha_salida: fechaSalida })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}

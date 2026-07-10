@@ -48,6 +48,12 @@ export default async function DashboardPage() {
         <Link href="/sows" className="text-sm font-medium hover:underline">
           Ver cerdas →
         </Link>
+        <Link
+          href="/fattening-pigs"
+          className="text-sm font-medium hover:underline"
+        >
+          Ver cerdos de engorde →
+        </Link>
         <Link href="/config" className="text-sm font-medium hover:underline">
           Configuración de alimento →
         </Link>

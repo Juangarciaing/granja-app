@@ -3,13 +3,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   createFarrowing,
+  createFatteningPig,
   createSow,
   getFarrowing,
+  getFatteningPig,
   getFeedingConfig,
   getSow,
   listActiveFarrowings,
+  listActiveFatteningPigs,
   listFarrowingsForSow,
   listSows,
+  markFatteningPigSold,
   updateFarrowingCounter,
   updateFeedingConfig,
   updateSow,
@@ -20,6 +24,7 @@ import type { Database, Tables } from "@/types/database";
 type Sow = Tables<"sows">;
 type Farrowing = Tables<"farrowings">;
 type FeedingConfigRow = Tables<"feeding_config">;
+type FatteningPig = Tables<"fattening_pigs">;
 type Call = { method: string; args: unknown[] };
 
 /**
@@ -46,6 +51,7 @@ function fakeSupabase(response: { data: unknown; error: unknown }) {
     insert: (...args: unknown[]) => Builder;
     update: (...args: unknown[]) => Builder;
     eq: (...args: unknown[]) => Builder;
+    is: (...args: unknown[]) => Builder;
     order: (...args: unknown[]) => Builder;
     single: (...args: unknown[]) => Builder;
   };
@@ -55,6 +61,7 @@ function fakeSupabase(response: { data: unknown; error: unknown }) {
     insert: record("insert"),
     update: record("update"),
     eq: record("eq"),
+    is: record("is"),
     order: record("order"),
     single: record("single"),
     then: (resolve: (value: Response) => unknown) => resolve(response),
@@ -384,6 +391,135 @@ describe("updateFeedingConfig", () => {
       { method: "from", args: ["feeding_config"] },
       { method: "update", args: [{ base_kg: 2.5, kg_per_piglet: 0.5 }] },
       { method: "eq", args: ["user_id", "user-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+const sampleFatteningPig: FatteningPig = {
+  id: "pig-1",
+  user_id: "user-1",
+  arete: "A12",
+  fecha_ingreso: "2026-07-01",
+  peso_inicial: 18.5,
+  fecha_salida: null,
+  created_at: "2026-07-01T00:00:00Z",
+  updated_at: "2026-07-01T00:00:00Z",
+};
+
+describe("listActiveFatteningPigs", () => {
+  it("selects only pigs with no fecha_salida, newest first, without an explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleFatteningPig],
+      error: null,
+    });
+
+    const result = await listActiveFatteningPigs(supabase);
+
+    expect(result).toEqual([sampleFatteningPig]);
+    expect(calls).toEqual([
+      { method: "from", args: ["fattening_pigs"] },
+      { method: "select", args: ["*"] },
+      { method: "is", args: ["fecha_salida", null] },
+      { method: "order", args: ["created_at", { ascending: false }] },
+    ]);
+    // Farm isolation relies on RLS (auth.uid() = user_id), never an
+    // app-level user_id filter — same contract as listSows/listFarrowingsForSow.
+    expect(
+      calls.some((call) => call.method === "eq" && call.args[0] === "user_id"),
+    ).toBe(false);
+  });
+
+  it("propagates a Postgres/RLS error instead of swallowing it", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: { message: "permission denied for table fattening_pigs" },
+    });
+
+    await expect(listActiveFatteningPigs(supabase)).rejects.toEqual({
+      message: "permission denied for table fattening_pigs",
+    });
+  });
+});
+
+describe("getFatteningPig", () => {
+  it("fetches a single fattening pig scoped by id", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleFatteningPig,
+      error: null,
+    });
+
+    const result = await getFatteningPig(supabase, "pig-1");
+
+    expect(result).toEqual(sampleFatteningPig);
+    expect(calls).toEqual([
+      { method: "from", args: ["fattening_pigs"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["id", "pig-1"] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("createFatteningPig", () => {
+  it("inserts only the editable fields, never a caller-supplied user_id or fecha_salida", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleFatteningPig,
+      error: null,
+    });
+
+    const result = await createFatteningPig(supabase, {
+      arete: "A12",
+      fecha_ingreso: "2026-07-01",
+      peso_inicial: 18.5,
+    });
+
+    expect(result).toEqual(sampleFatteningPig);
+    const insertCall = calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toEqual({
+      arete: "A12",
+      fecha_ingreso: "2026-07-01",
+      peso_inicial: 18.5,
+    });
+    expect(insertCall?.args[0]).not.toHaveProperty("user_id");
+    expect(insertCall?.args[0]).not.toHaveProperty("fecha_salida");
+  });
+
+  it("propagates a duplicate-arete unique-violation error instead of swallowing it (spec: Duplicate arete for same user)", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: {
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "fattening_pigs_active_arete_per_user"',
+      },
+    });
+
+    await expect(
+      createFatteningPig(supabase, {
+        arete: "A12",
+        fecha_ingreso: "2026-07-01",
+        peso_inicial: 18.5,
+      }),
+    ).rejects.toMatchObject({ code: "23505" });
+  });
+});
+
+describe("markFatteningPigSold", () => {
+  it("sets fecha_salida for the given id, scoped only by eq('id', id) — no extra user_id filter needed", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleFatteningPig, fecha_salida: "2026-08-01" },
+      error: null,
+    });
+
+    const result = await markFatteningPigSold(supabase, "pig-1", "2026-08-01");
+
+    expect(result.fecha_salida).toBe("2026-08-01");
+    expect(calls).toEqual([
+      { method: "from", args: ["fattening_pigs"] },
+      { method: "update", args: [{ fecha_salida: "2026-08-01" }] },
+      { method: "eq", args: ["id", "pig-1"] },
       { method: "select", args: [] },
       { method: "single", args: [] },
     ]);

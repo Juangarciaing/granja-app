@@ -86,6 +86,39 @@ export type Database = {
           },
         ]
       }
+      fattening_pigs: {
+        Row: {
+          arete: string
+          created_at: string
+          fecha_ingreso: string
+          fecha_salida: string | null
+          id: string
+          peso_inicial: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          arete: string
+          created_at?: string
+          fecha_ingreso: string
+          fecha_salida?: string | null
+          id?: string
+          peso_inicial: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          arete?: string
+          created_at?: string
+          fecha_ingreso?: string
+          fecha_salida?: string | null
+          id?: string
+          peso_inicial?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       feeding_config: {
         Row: {
           base_kg: number
@@ -142,6 +175,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      weight_checkins: {
+        Row: {
+          created_at: string
+          fecha: string
+          id: string
+          peso: number
+          pig_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fecha: string
+          id?: string
+          peso: number
+          pig_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          peso?: number
+          pig_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weight_checkins_pig_id_fkey"
+            columns: ["pig_id"]
+            isOneToOne: false
+            referencedRelation: "fattening_pigs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

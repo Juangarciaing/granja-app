@@ -39,12 +39,18 @@ app can run against a real backend:
    ```bash
    pnpm exec supabase link --project-ref <your-project-ref>
    ```
-4. Apply the schema migration (`supabase/migrations/0001_init.sql` — creates
-   `sows`, `farrowings`, `feeding_config` with RLS and the default
-   `feeding_config` auto-provisioning trigger):
+4. Apply the schema migrations:
    ```bash
    pnpm exec supabase db push
    ```
+   - `0001_init.sql` — creates `sows`, `farrowings`, `feeding_config` with
+     RLS and the default `feeding_config` auto-provisioning trigger.
+   - `0002_farrowings_counter_decrement_only.sql` — decrement-only trigger
+     for `farrowings.current_piglets`.
+   - `0003_fattening_pigs_and_weight_checkins.sql` — creates
+     `fattening_pigs` and `weight_checkins` (module 2), both with full
+     select/insert/update/delete RLS, plus the partial unique index that
+     rejects a duplicate active `arete` per user.
 5. Regenerate the typed schema (replaces the hand-authored placeholder at
    `types/database.ts`):
    ```bash
