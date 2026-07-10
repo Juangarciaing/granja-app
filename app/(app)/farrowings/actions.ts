@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import {
   createFarrowing,
   getFarrowing,
+  getSow,
   updateFarrowingCounter,
   weanFarrowing,
 } from "@/lib/db/queries";
@@ -18,8 +19,11 @@ export type { FarrowingActionState } from "@/lib/farrowings/form-state";
 /**
  * Server Action bound to the "record farrowing" form via
  * `.bind(null, sowId)`. Validation happens in the pure, unit-tested
- * `parseFarrowingForm` first; the mutation relies on RLS
- * (`farrowings.user_id default auth.uid()`) for farm-scoped ownership.
+ * `parseFarrowingForm` first. The `getSow` call before insert is a deliberate
+ * ownership guard: `farrowings.sow_id` is a bare FK, and Postgres FK checks
+ * bypass RLS, so nothing else stops this action from being called directly
+ * with a `sowId` the caller doesn't own. `getSow` throws (RLS returns no
+ * row) if that happens, same guard already used at the page level.
  */
 export async function createFarrowingAction(
   sowId: string,
@@ -32,6 +36,7 @@ export async function createFarrowingAction(
   }
 
   const supabase = await createClient();
+  await getSow(supabase, sowId);
   await createFarrowing(supabase, result.value);
 
   revalidatePath(`/sows/${sowId}`);
