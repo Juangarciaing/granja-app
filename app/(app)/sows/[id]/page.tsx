@@ -55,6 +55,9 @@ export default async function SowDetailPage({ params }: SowDetailPageProps) {
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">
       <div>
+        <Link href="/sows" className="text-sm font-medium text-ink-muted hover:text-ink">
+          ‹ Cerdas
+        </Link>
         <h1 className="text-2xl">Editar cerda</h1>
         <div className="mt-4">
           <SowForm

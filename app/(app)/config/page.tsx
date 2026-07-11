@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { updateConfigAction } from "@/app/(app)/config/actions";
@@ -33,6 +34,9 @@ export default async function ConfigPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
+      <Link href="/" className="text-sm font-medium text-ink-muted hover:text-ink">
+        ‹ Inicio
+      </Link>
       <h1 className="text-2xl">Configuración de alimento</h1>
       <p className="text-sm text-ink-muted">
         Estos valores se usan para calcular el alimento diario de todas las

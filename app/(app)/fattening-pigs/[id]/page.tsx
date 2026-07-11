@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { markFatteningPigSoldAction } from "@/app/(app)/fattening-pigs/actions";
@@ -45,6 +46,12 @@ export default async function FatteningPigDetailPage({
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">
+      <div>
+        <Link href="/fattening-pigs" className="text-sm font-medium text-ink-muted hover:text-ink">
+          ‹ Cerdos de engorde
+        </Link>
+      </div>
+
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">{pig.ear_tag}</h1>
         {isActive && (
