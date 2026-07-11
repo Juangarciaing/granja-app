@@ -59,21 +59,21 @@ export function InstallPrompt() {
   return (
     <div
       role="status"
-      className="flex items-center justify-between gap-3 border-b border-black/10 bg-zinc-50 px-4 py-2 text-sm dark:border-white/10 dark:bg-zinc-900"
+      className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-2 text-sm text-ink"
     >
       <span>Instalá la app en tu dispositivo para acceso rápido.</span>
       <div className="flex gap-2">
         <button
           type="button"
           onClick={handleDismiss}
-          className="rounded px-3 py-1 text-zinc-600 dark:text-zinc-400"
+          className="rounded px-3 py-1 text-ink-muted"
         >
           Ahora no
         </button>
         <button
           type="button"
           onClick={handleInstall}
-          className="rounded bg-zinc-900 px-3 py-1 text-white dark:bg-white dark:text-zinc-900"
+          className="btn-primary px-3 py-1"
         >
           Instalar
         </button>

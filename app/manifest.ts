@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Registro de cerdas, partos y cálculo de alimento diario en lactancia.",
     start_url: "/",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#166534",
+    background_color: "#efe9da",
+    theme_color: "#2e6b3f",
     icons: [
       {
         src: "/icons/icon-192.png",

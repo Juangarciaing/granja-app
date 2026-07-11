@@ -46,10 +46,10 @@ export function ConfigForm({ action, defaultValues }: ConfigFormProps) {
           min="0"
           defaultValue={defaultValues.base_kg}
           aria-invalid={Boolean(state.errors.base_kg)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
         {state.errors.base_kg && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.base_kg}
           </p>
         )}
@@ -67,20 +67,16 @@ export function ConfigForm({ action, defaultValues }: ConfigFormProps) {
           min="0"
           defaultValue={defaultValues.kg_per_piglet}
           aria-invalid={Boolean(state.errors.kg_per_piglet)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
         {state.errors.kg_per_piglet && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.kg_per_piglet}
           </p>
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-      >
+      <button type="submit" disabled={pending} className="btn-primary">
         Guardar cambios
       </button>
     </form>

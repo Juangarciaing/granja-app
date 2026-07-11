@@ -1,26 +1,281 @@
 @import "tailwindcss";
 
+/*
+ * Fonts: self-hosted static woff2 files in public/fonts/.
+ * "Tag Compressed" is a trimmed condensed extrabold cut, "Granja Sans" a
+ * Fira Sans subset (SIL OFL), "Ledger Mono" a Hack subset (permissive MIT-
+ * style license) — both fine to redistribute here.
+ */
+@font-face {
+  font-family: "Tag Compressed";
+  src: url("/fonts/tag-compressed-extrabold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Granja Sans";
+  src: url("/fonts/granja-sans-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Granja Sans";
+  src: url("/fonts/granja-sans-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Granja Sans";
+  src: url("/fonts/granja-sans-semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ledger Mono";
+  src: url("/fonts/ledger-mono-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ledger Mono";
+  src: url("/fonts/ledger-mono-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --surface-0: #efe9da;
+  --surface-1: #f8f4e9;
+  --surface-2: #e3dcc6;
+  --ink: #26231a;
+  --ink-muted: #6b6250;
+  --ink-faint: #948a72;
+  --border: #d3c9ae;
+  --border-strong: #b7ab8a;
+  --accent: #2e6b3f;
+  --accent-strong: #204f2e;
+  --accent-wash: #2e6b3f1a;
+  --ochre: #b4601f;
+  --ochre-wash: #b4601f1a;
+  --neutral-status: #8c8267;
+  --neutral-wash: #8c82671a;
+  --critical: #9a2e22;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-wash: var(--accent-wash);
+  --color-ochre: var(--ochre);
+  --color-ochre-wash: var(--ochre-wash);
+  --color-neutral-status: var(--neutral-status);
+  --color-neutral-wash: var(--neutral-wash);
+  --color-critical: var(--critical);
+  --font-display: "Tag Compressed", sans-serif;
+  --font-sans: "Granja Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Ledger Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --surface-0: #16140e;
+    --surface-1: #201c14;
+    --surface-2: #2a2418;
+    --ink: #ede6d3;
+    --ink-muted: #a89c81;
+    --ink-faint: #756c56;
+    --border: #3a3323;
+    --border-strong: #4d4530;
+    --accent: #63ac6b;
+    --accent-strong: #86c98d;
+    --accent-wash: #63ac6b26;
+    --ochre: #e0904f;
+    --ochre-wash: #e0904f26;
+    --neutral-status: #9c9174;
+    --neutral-wash: #9c917426;
+    --critical: #e2695a;
   }
 }
 
+:root[data-theme="dark"] {
+  --surface-0: #16140e;
+  --surface-1: #201c14;
+  --surface-2: #2a2418;
+  --ink: #ede6d3;
+  --ink-muted: #a89c81;
+  --ink-faint: #756c56;
+  --border: #3a3323;
+  --border-strong: #4d4530;
+  --accent: #63ac6b;
+  --accent-strong: #86c98d;
+  --accent-wash: #63ac6b26;
+  --ochre: #e0904f;
+  --ochre-wash: #e0904f26;
+  --neutral-status: #9c9174;
+  --neutral-wash: #9c917426;
+  --critical: #e2695a;
+}
+
+:root[data-theme="light"] {
+  --surface-0: #efe9da;
+  --surface-1: #f8f4e9;
+  --surface-2: #e3dcc6;
+  --ink: #26231a;
+  --ink-muted: #6b6250;
+  --ink-faint: #948a72;
+  --border: #d3c9ae;
+  --border-strong: #b7ab8a;
+  --accent: #2e6b3f;
+  --accent-strong: #204f2e;
+  --accent-wash: #2e6b3f1a;
+  --ochre: #b4601f;
+  --ochre-wash: #b4601f1a;
+  --neutral-status: #8c8267;
+  --neutral-wash: #8c82671a;
+  --critical: #9a2e22;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface-0);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+@layer components {
+  /* Ear-tag notch motif for entity list-item cards: a perforated-circle
+     hole-punch at the left edge with a faint dashed line just inside it. */
+  .tag-card {
+    position: relative;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.875rem 1rem 0.875rem 2.5rem;
+  }
+
+  .tag-card::before {
+    content: "";
+    position: absolute;
+    left: 0.875rem;
+    top: 50%;
+    width: 0.625rem;
+    height: 0.625rem;
+    transform: translateY(-50%);
+    border-radius: 9999px;
+    background: var(--surface-0);
+    border: 1.5px solid var(--border-strong);
+  }
+
+  .tag-card::after {
+    content: "";
+    position: absolute;
+    left: 1.375rem;
+    top: 0.625rem;
+    bottom: 0.625rem;
+    border-left: 1px dashed var(--border);
+  }
+
+  /* Status chips: rectangular, uppercase, Ledger Mono. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 3px;
+    padding: 0.125rem 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .chip-good {
+    background: var(--accent-wash);
+    color: var(--accent);
+  }
+
+  .chip-neutral {
+    background: var(--neutral-wash);
+    color: var(--neutral-status);
+  }
+
+  .chip-warn {
+    background: var(--ochre-wash);
+    color: var(--ochre);
+  }
+
+  /* Buttons: primary = solid ink; secondary/ghost = outlined. */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    padding: 0.625rem 1.25rem;
+    background: var(--ink);
+    color: var(--surface-1);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: opacity 150ms ease;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.88;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    padding: 0.625rem 1.25rem;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition:
+      background 150ms ease,
+      opacity 150ms ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-2);
+  }
+
+  .btn-secondary:disabled {
+    opacity: 0.5;
+  }
 }

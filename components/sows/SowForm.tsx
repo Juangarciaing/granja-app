@@ -44,10 +44,10 @@ export function SowForm({ action, defaultValues, submitLabel }: SowFormProps) {
           name="name"
           defaultValue={defaultValues?.name}
           aria-invalid={Boolean(state.errors.name)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 text-ink"
         />
         {state.errors.name && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.name}
           </p>
         )}
@@ -62,7 +62,7 @@ export function SowForm({ action, defaultValues, submitLabel }: SowFormProps) {
           name="birth_date"
           type="date"
           defaultValue={defaultValues?.birth_date ?? ""}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
       </div>
 
@@ -74,7 +74,7 @@ export function SowForm({ action, defaultValues, submitLabel }: SowFormProps) {
           id="status"
           name="status"
           defaultValue={defaultValues?.status ?? "active"}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 text-ink"
         >
           {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -83,7 +83,7 @@ export function SowForm({ action, defaultValues, submitLabel }: SowFormProps) {
           ))}
         </select>
         {state.errors.status && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.status}
           </p>
         )}
@@ -97,15 +97,11 @@ export function SowForm({ action, defaultValues, submitLabel }: SowFormProps) {
           id="notes"
           name="notes"
           defaultValue={defaultValues?.notes ?? ""}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 text-ink"
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-      >
+      <button type="submit" disabled={pending} className="btn-primary">
         {submitLabel}
       </button>
     </form>

@@ -39,52 +39,51 @@ export default async function DashboardPage() {
     ) / 100;
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Granja</h1>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Sesión iniciada como {user?.email ?? "usuario"}.
-      </p>
-      <div className="flex gap-4">
-        <Link href="/sows" className="text-sm font-medium hover:underline">
-          Ver cerdas →
-        </Link>
-        <Link
-          href="/fattening-pigs"
-          className="text-sm font-medium hover:underline"
-        >
-          Ver cerdos de engorde →
-        </Link>
-        <Link href="/config" className="text-sm font-medium hover:underline">
-          Configuración de alimento →
-        </Link>
+    <main className="flex flex-1 flex-col gap-6 p-6">
+      <div>
+        <h1 className="text-3xl">Granja</h1>
+        <p className="text-sm text-ink-muted">
+          Sesión iniciada como {user?.email ?? "usuario"}.
+        </p>
       </div>
 
-      <div className="flex flex-col gap-3 border-t pt-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Alimento diario</h2>
-          <span className="text-sm text-zinc-500">
-            Total: {totalDailyFeedKg} kg/día
+      <nav className="flex flex-wrap gap-2">
+        <Link href="/sows" className="btn-secondary">
+          Ver cerdas
+        </Link>
+        <Link href="/fattening-pigs" className="btn-secondary">
+          Ver cerdos de engorde
+        </Link>
+        <Link href="/config" className="btn-secondary">
+          Configuración de alimento
+        </Link>
+      </nav>
+
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between rounded bg-surface-2 px-5 py-4">
+          <h2 className="text-lg">Alimento diario</h2>
+          <span className="font-mono text-3xl tabular-nums text-accent">
+            {totalDailyFeedKg} <span className="text-base text-ink-muted">kg/día</span>
           </span>
         </div>
 
         {feedSummary.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-ink-muted">
             No hay partos activos en lactancia actualmente.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+          <ul className="flex flex-col gap-2">
             {feedSummary.map((row) => (
-              <li
-                key={row.farrowingId}
-                className="flex items-center justify-between py-3"
-              >
-                <span className="font-medium">{row.sowName}</span>
-                <span className="text-sm text-zinc-500">
-                  {row.currentPiglets} lechones
-                </span>
-                <span className="text-sm font-medium">
-                  {row.dailyFeedKg} kg/día
-                </span>
+              <li key={row.farrowingId} className="tag-card">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-display text-lg">{row.sowName}</span>
+                  <span className="font-mono text-sm tabular-nums text-ink-muted">
+                    {row.currentPiglets} lechones
+                  </span>
+                  <span className="font-mono text-sm font-bold tabular-nums text-accent">
+                    {row.dailyFeedKg} kg/día
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

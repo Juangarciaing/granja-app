@@ -33,8 +33,8 @@ export default async function ConfigPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Configuración de alimento</h1>
-      <p className="text-sm text-zinc-500">
+      <h1 className="text-2xl">Configuración de alimento</h1>
+      <p className="text-sm text-ink-muted">
         Estos valores se usan para calcular el alimento diario de todas las
         cerdas lactando: ración base + (alimento por lechón × lechones
         vivos).

@@ -59,18 +59,20 @@ export function PigletCounter({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-3">
-        <span className="text-2xl font-semibold tabular-nums">{count}</span>
+        <span className="font-mono text-2xl font-bold tabular-nums text-ink">
+          {count}
+        </span>
         <button
           type="button"
           onClick={handleDecrement}
           disabled={count <= 0}
-          className="rounded border px-3 py-1 text-sm disabled:opacity-40"
+          className="btn-secondary px-3 py-1 disabled:opacity-40"
         >
           -1
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-critical">
           {error}
         </p>
       )}

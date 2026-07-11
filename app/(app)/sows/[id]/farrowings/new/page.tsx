@@ -24,7 +24,9 @@ export default async function NewFarrowingPage({
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Registrar parto — {sow.name}</h1>
+      <h1 className="text-2xl">
+        Registrar parto — <span className="font-display">{sow.name}</span>
+      </h1>
       <FarrowingForm action={boundCreateFarrowingAction} />
     </main>
   );

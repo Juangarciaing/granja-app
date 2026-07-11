@@ -23,34 +23,29 @@ export default async function FatteningPigsPage() {
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Cerdos de engorde</h1>
-        <Link
-          href="/fattening-pigs/new"
-          className="rounded bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-white dark:text-zinc-900"
-        >
+        <h1 className="text-2xl">Cerdos de engorde</h1>
+        <Link href="/fattening-pigs/new" className="btn-primary">
           Registrar cerdo
         </Link>
       </div>
 
       {pigs.length === 0 ? (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-ink-muted">
           Todavía no hay cerdos de engorde registrados.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="flex flex-col gap-2">
           {pigs.map((pig) => (
-            <li key={pig.id} className="flex items-center justify-between py-3">
-              <div>
-                <Link
-                  href={`/fattening-pigs/${pig.id}`}
-                  className="font-medium hover:underline"
-                >
-                  {pig.ear_tag}
-                </Link>
-                <p className="text-sm text-zinc-500">
-                  Ingreso: {pig.entry_date} · Peso inicial: {pig.entry_weight} kg
-                </p>
-              </div>
+            <li key={pig.id} className="tag-card">
+              <Link
+                href={`/fattening-pigs/${pig.id}`}
+                className="flex items-center justify-between gap-3"
+              >
+                <span className="font-display text-lg">{pig.ear_tag}</span>
+                <span className="font-mono text-sm tabular-nums text-ink-muted">
+                  {pig.entry_date} · {pig.entry_weight} kg
+                </span>
+              </Link>
             </li>
           ))}
         </ul>

@@ -20,5 +20,9 @@ export default async function AppLayout({
     redirect(redirectTo);
   }
 
-  return <div className="flex min-h-full flex-1 flex-col">{children}</div>;
+  return (
+    <div className="flex min-h-full flex-1 flex-col bg-surface-0 text-ink">
+      {children}
+    </div>
+  );
 }

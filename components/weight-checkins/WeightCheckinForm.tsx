@@ -57,10 +57,10 @@ export function WeightCheckinForm({
           type="date"
           defaultValue={defaultValues?.checkin_date}
           aria-invalid={Boolean(state.errors.checkin_date)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
         {state.errors.checkin_date && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.checkin_date}
           </p>
         )}
@@ -78,29 +78,21 @@ export function WeightCheckinForm({
           step="any"
           defaultValue={defaultValues?.weight}
           aria-invalid={Boolean(state.errors.weight)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
         {state.errors.weight && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.weight}
           </p>
         )}
       </div>
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-        >
+        <button type="submit" disabled={pending} className="btn-primary">
           {submitLabel}
         </button>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded border px-4 py-2 text-sm"
-          >
+          <button type="button" onClick={onCancel} className="btn-secondary">
             Cancelar
           </button>
         )}

@@ -14,6 +14,13 @@ const STATUS_LABELS: Record<string, string> = {
   dead: "Muerta",
 };
 
+const STATUS_CHIP_CLASS: Record<string, string> = {
+  active: "chip-good",
+  sold: "chip-neutral",
+  culled: "chip-warn",
+  dead: "chip-warn",
+};
+
 export default async function SowsPage() {
   const supabase = await createClient();
   const {
@@ -30,34 +37,29 @@ export default async function SowsPage() {
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Cerdas</h1>
-        <Link
-          href="/sows/new"
-          className="rounded bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-white dark:text-zinc-900"
-        >
+        <h1 className="text-2xl">Cerdas</h1>
+        <Link href="/sows/new" className="btn-primary">
           Registrar cerda
         </Link>
       </div>
 
       {sows.length === 0 ? (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-ink-muted">
           Todavía no hay cerdas registradas.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="flex flex-col gap-2">
           {sows.map((sow) => (
-            <li key={sow.id} className="flex items-center justify-between py-3">
-              <div>
-                <Link
-                  href={`/sows/${sow.id}`}
-                  className="font-medium hover:underline"
-                >
-                  {sow.name}
-                </Link>
-                <p className="text-sm text-zinc-500">
+            <li key={sow.id} className="tag-card">
+              <Link
+                href={`/sows/${sow.id}`}
+                className="flex items-center justify-between gap-3"
+              >
+                <span className="font-display text-lg">{sow.name}</span>
+                <span className={`chip ${STATUS_CHIP_CLASS[sow.status] ?? "chip-neutral"}`}>
                   {STATUS_LABELS[sow.status] ?? sow.status}
-                </p>
-              </div>
+                </span>
+              </Link>
             </li>
           ))}
         </ul>

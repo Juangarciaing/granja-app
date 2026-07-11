@@ -37,10 +37,10 @@ export function FarrowingForm({ action }: FarrowingFormProps) {
           name="farrowing_date"
           type="date"
           aria-invalid={Boolean(state.errors.farrowing_date)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
         {state.errors.farrowing_date && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.farrowing_date}
           </p>
         )}
@@ -57,20 +57,16 @@ export function FarrowingForm({ action }: FarrowingFormProps) {
           min={0}
           step={1}
           aria-invalid={Boolean(state.errors.born_alive)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
         {state.errors.born_alive && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.born_alive}
           </p>
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-      >
+      <button type="submit" disabled={pending} className="btn-primary">
         Registrar parto
       </button>
     </form>

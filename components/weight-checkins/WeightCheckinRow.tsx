@@ -52,21 +52,28 @@ export function WeightCheckinRow({
   return (
     <li className="flex items-center justify-between py-3">
       <div>
-        <span className="font-medium">{checkinDate}</span>
-        <p className="text-sm text-zinc-500">
-          {weight} kg · {formatWeightDelta(weight - entryWeight)} vs. ingreso
+        <span className="font-mono tabular-nums text-ink">{checkinDate}</span>
+        <p className="text-sm text-ink-muted">
+          <span className="font-mono tabular-nums">{weight} kg</span> ·{" "}
+          <span className="font-mono tabular-nums">
+            {formatWeightDelta(weight - entryWeight)}
+          </span>{" "}
+          vs. ingreso
         </p>
       </div>
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="rounded border px-3 py-1 text-sm"
+          className="btn-secondary px-3 py-1"
         >
           Editar
         </button>
         <form action={deleteAction}>
-          <button type="submit" className="rounded border px-3 py-1 text-sm text-red-600">
+          <button
+            type="submit"
+            className="btn-secondary px-3 py-1 text-critical"
+          >
             Eliminar
           </button>
         </form>

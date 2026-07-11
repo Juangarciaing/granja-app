@@ -46,28 +46,36 @@ export default async function FatteningPigDetailPage({
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{pig.ear_tag}</h1>
+        <h1 className="font-display text-3xl">{pig.ear_tag}</h1>
         {isActive && (
           <form action={boundMarkSoldAction}>
-            <button type="submit" className="rounded border px-3 py-1 text-sm">
+            <button type="submit" className="btn-secondary">
               Marcar como vendido
             </button>
           </form>
         )}
       </div>
 
-      <dl className="flex flex-col gap-2 text-sm">
+      <dl className="flex flex-col gap-2 rounded bg-surface-2 px-4 py-3 text-sm">
         <div className="flex justify-between">
-          <dt className="text-zinc-500">Fecha de ingreso</dt>
-          <dd>{pig.entry_date}</dd>
+          <dt className="text-ink-muted">Fecha de ingreso</dt>
+          <dd className="font-mono tabular-nums">{pig.entry_date}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-zinc-500">Peso inicial</dt>
-          <dd>{pig.entry_weight} kg</dd>
+          <dt className="text-ink-muted">Peso inicial</dt>
+          <dd className="font-mono tabular-nums">{pig.entry_weight} kg</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-zinc-500">Estado</dt>
-          <dd>{isActive ? "Activo" : `Vendido (${pig.exit_date})`}</dd>
+          <dt className="text-ink-muted">Estado</dt>
+          <dd>
+            {isActive ? (
+              <span className="chip chip-good">Activo</span>
+            ) : (
+              <span className="chip chip-neutral">
+                Vendido ({pig.exit_date})
+              </span>
+            )}
+          </dd>
         </div>
       </dl>
 
@@ -80,13 +88,16 @@ export default async function FatteningPigDetailPage({
         shows this baseline row with no error (spec scenario: "Pig with no
         check-ins yet").
       */}
-      <div className="flex flex-col gap-4 border-t pt-6">
-        <h2 className="text-xl font-semibold">Historial de pesajes</h2>
+      <div className="flex flex-col gap-4 border-t border-border pt-6">
+        <h2 className="text-xl">Historial de pesajes</h2>
 
-        <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="flex flex-col divide-y divide-border">
           <li className="py-3">
-            <span className="font-medium">{pig.entry_date}</span>
-            <p className="text-sm text-zinc-500">{pig.entry_weight} kg · Peso inicial</p>
+            <span className="font-mono tabular-nums text-ink">{pig.entry_date}</span>
+            <p className="text-sm text-ink-muted">
+              <span className="font-mono tabular-nums">{pig.entry_weight} kg</span>{" "}
+              · Peso inicial
+            </p>
           </li>
           {checkins.map((checkin) => (
             <WeightCheckinRow

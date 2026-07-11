@@ -35,13 +35,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-4">
+    <main className="flex flex-1 items-center justify-center bg-surface-0 px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-black/10 p-6 dark:border-white/10"
+        className="w-full max-w-sm space-y-4 rounded border border-border bg-surface-1 p-6"
       >
-        <h1 className="text-xl font-semibold">Iniciar sesión</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <h1 className="text-3xl">Granja</h1>
+        <p className="text-sm text-ink-muted">
           Ingresa con la cuenta familiar de la granja.
         </p>
 
@@ -57,7 +57,7 @@ export default function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+            className="w-full rounded border border-border bg-surface-0 px-3 py-2 text-ink"
           />
         </div>
 
@@ -73,12 +73,12 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+            className="w-full rounded border border-border bg-surface-0 px-3 py-2 text-ink"
           />
         </div>
 
         {error ? (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {error}
           </p>
         ) : null}
@@ -86,7 +86,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+          className="btn-primary w-full"
         >
           {isSubmitting ? "Ingresando..." : "Ingresar"}
         </button>

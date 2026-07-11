@@ -38,10 +38,10 @@ export function FatteningPigForm({ action, submitLabel }: FatteningPigFormProps)
           id="ear_tag"
           name="ear_tag"
           aria-invalid={Boolean(state.errors.ear_tag)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 text-ink"
         />
         {state.errors.ear_tag && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.ear_tag}
           </p>
         )}
@@ -56,10 +56,10 @@ export function FatteningPigForm({ action, submitLabel }: FatteningPigFormProps)
           name="entry_date"
           type="date"
           aria-invalid={Boolean(state.errors.entry_date)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
         {state.errors.entry_date && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.entry_date}
           </p>
         )}
@@ -76,20 +76,16 @@ export function FatteningPigForm({ action, submitLabel }: FatteningPigFormProps)
           min={0}
           step="any"
           aria-invalid={Boolean(state.errors.entry_weight)}
-          className="rounded border px-3 py-2"
+          className="rounded border border-border bg-surface-1 px-3 py-2 font-mono tabular-nums text-ink"
         />
         {state.errors.entry_weight && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-critical">
             {state.errors.entry_weight}
           </p>
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-      >
+      <button type="submit" disabled={pending} className="btn-primary">
         {submitLabel}
       </button>
     </form>
