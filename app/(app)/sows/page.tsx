@@ -36,6 +36,10 @@ export default async function SowsPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
+      <Link href="/" className="text-sm font-medium text-ink-muted hover:text-ink">
+        ‹ Inicio
+      </Link>
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl">Cerdas</h1>
         <Link href="/sows/new" className="btn-primary">
