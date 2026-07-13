@@ -39,6 +39,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      dairy_cows: {
+        Row: {
+          created_at: string
+          ear_tag: string
+          exit_date: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ear_tag: string
+          exit_date?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          ear_tag?: string
+          exit_date?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       farrowings: {
         Row: {
           born_alive: number
@@ -142,6 +169,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      milk_records: {
+        Row: {
+          cow_id: string
+          created_at: string
+          id: string
+          liters: number
+          record_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cow_id: string
+          created_at?: string
+          id?: string
+          liters: number
+          record_date: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          cow_id?: string
+          created_at?: string
+          id?: string
+          liters?: number
+          record_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milk_records_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "dairy_cows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sows: {
         Row: {

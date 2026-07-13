@@ -2,20 +2,24 @@ import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  createDairyCow,
   createFarrowing,
   createFatteningPig,
   createSow,
   createWeightCheckin,
   deleteWeightCheckin,
+  getDairyCow,
   getFarrowing,
   getFatteningPig,
   getFeedingConfig,
   getSow,
+  listActiveDairyCows,
   listActiveFarrowings,
   listActiveFatteningPigs,
   listFarrowingsForSow,
   listSows,
   listWeightCheckinsForPig,
+  markDairyCowExited,
   markFatteningPigSold,
   updateFarrowingCounter,
   updateFeedingConfig,
@@ -30,6 +34,7 @@ type Farrowing = Tables<"farrowings">;
 type FeedingConfigRow = Tables<"feeding_config">;
 type FatteningPig = Tables<"fattening_pigs">;
 type WeightCheckin = Tables<"weight_checkins">;
+type DairyCow = Tables<"dairy_cows">;
 type Call = { method: string; args: unknown[] };
 
 /**
@@ -527,6 +532,106 @@ describe("markFatteningPigSold", () => {
       { method: "from", args: ["fattening_pigs"] },
       { method: "update", args: [{ exit_date: "2026-08-01" }] },
       { method: "eq", args: ["id", "pig-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+const sampleDairyCow: DairyCow = {
+  id: "cow-1",
+  user_id: "user-1",
+  ear_tag: "C-104",
+  exit_date: null,
+  created_at: "2026-07-01T00:00:00Z",
+  updated_at: "2026-07-01T00:00:00Z",
+};
+
+describe("listActiveDairyCows", () => {
+  it("selects only cows with no exit_date, newest first, without an explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleDairyCow],
+      error: null,
+    });
+
+    const result = await listActiveDairyCows(supabase);
+
+    expect(result).toEqual([sampleDairyCow]);
+    expect(calls).toEqual([
+      { method: "from", args: ["dairy_cows"] },
+      { method: "select", args: ["*"] },
+      { method: "is", args: ["exit_date", null] },
+      { method: "order", args: ["created_at", { ascending: false }] },
+    ]);
+    // Farm isolation relies on RLS (auth.uid() = user_id), never an
+    // app-level user_id filter — same contract as listActiveFatteningPigs.
+    expect(
+      calls.some((call) => call.method === "eq" && call.args[0] === "user_id"),
+    ).toBe(false);
+  });
+
+  it("propagates a Postgres/RLS error instead of swallowing it", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: { message: "permission denied for table dairy_cows" },
+    });
+
+    await expect(listActiveDairyCows(supabase)).rejects.toEqual({
+      message: "permission denied for table dairy_cows",
+    });
+  });
+});
+
+describe("getDairyCow", () => {
+  it("fetches a single dairy cow scoped by id", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleDairyCow,
+      error: null,
+    });
+
+    const result = await getDairyCow(supabase, "cow-1");
+
+    expect(result).toEqual(sampleDairyCow);
+    expect(calls).toEqual([
+      { method: "from", args: ["dairy_cows"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["id", "cow-1"] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("createDairyCow", () => {
+  it("inserts only the editable fields, never a caller-supplied user_id or exit_date", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleDairyCow,
+      error: null,
+    });
+
+    const result = await createDairyCow(supabase, { ear_tag: "C-104" });
+
+    expect(result).toEqual(sampleDairyCow);
+    const insertCall = calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toEqual({ ear_tag: "C-104" });
+    expect(insertCall?.args[0]).not.toHaveProperty("user_id");
+    expect(insertCall?.args[0]).not.toHaveProperty("exit_date");
+  });
+});
+
+describe("markDairyCowExited", () => {
+  it("sets exit_date for the given id, scoped only by eq('id', id) — no extra user_id filter needed", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleDairyCow, exit_date: "2026-08-01" },
+      error: null,
+    });
+
+    const result = await markDairyCowExited(supabase, "cow-1", "2026-08-01");
+
+    expect(result.exit_date).toBe("2026-08-01");
+    expect(calls).toEqual([
+      { method: "from", args: ["dairy_cows"] },
+      { method: "update", args: [{ exit_date: "2026-08-01" }] },
+      { method: "eq", args: ["id", "cow-1"] },
       { method: "select", args: [] },
       { method: "single", args: [] },
     ]);

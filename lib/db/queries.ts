@@ -357,6 +357,92 @@ export async function markFatteningPigSold(
   return data;
 }
 
+export type DairyCow = Tables<"dairy_cows">;
+
+/**
+ * Editable dairy-cow fields for registration. `user_id`, `id`,
+ * `created_at`/`updated_at` and `exit_date` are intentionally excluded:
+ * `user_id` is assigned by RLS default (same ownership contract as
+ * `NewFatteningPig`), and `exit_date` is only ever set later via
+ * `markDairyCowExited` — there is no "pre-exited" registration path (spec:
+ * "Register a dairy cow"). No `updateDairyCow` exists in v1 (mirrors
+ * `fattening_pigs`: no general edit, only mark-exited).
+ */
+export type NewDairyCow = Omit<
+  TablesInsert<"dairy_cows">,
+  "user_id" | "id" | "created_at" | "updated_at" | "exit_date"
+>;
+
+/**
+ * Lists cows still under active tracking (`exit_date is null`), newest
+ * first. No explicit `user_id` filter — visibility is scoped by the
+ * `dairy_cows_select_own` RLS policy, same pattern as `listActiveFatteningPigs`
+ * (spec: "Mark a cow as exited" — exited cows must not appear in the active
+ * list).
+ */
+export async function listActiveDairyCows(
+  supabase: SupabaseDb,
+): Promise<DairyCow[]> {
+  const { data, error } = await supabase
+    .from("dairy_cows")
+    .select("*")
+    .is("exit_date", null)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getDairyCow(
+  supabase: SupabaseDb,
+  id: string,
+): Promise<DairyCow> {
+  const { data, error } = await supabase
+    .from("dairy_cows")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function createDairyCow(
+  supabase: SupabaseDb,
+  input: NewDairyCow,
+): Promise<DairyCow> {
+  const { data, error } = await supabase
+    .from("dairy_cows")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Marks a cow as exited (sold/dead) by setting `exit_date`, mirroring
+ * `markFatteningPigSold`. A bare `.eq('id', id)` filter alone satisfies
+ * Supabase's pg-safeupdate "UPDATE requires a WHERE clause" requirement —
+ * RLS still scopes which rows are visible to update in the first place.
+ */
+export async function markDairyCowExited(
+  supabase: SupabaseDb,
+  id: string,
+  exitDate: string,
+): Promise<DairyCow> {
+  const { data, error } = await supabase
+    .from("dairy_cows")
+    .update({ exit_date: exitDate })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export type WeightCheckin = Tables<"weight_checkins">;
 
 /**
