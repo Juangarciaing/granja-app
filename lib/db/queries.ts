@@ -545,3 +545,114 @@ export async function deleteWeightCheckin(
 
   if (error) throw error;
 }
+
+export type MilkRecord = Tables<"milk_records">;
+
+/**
+ * Editable milk-record fields for create. `user_id`, `id` and
+ * `created_at`/`updated_at` are intentionally excluded: `user_id` is
+ * assigned by RLS default (same ownership contract as `NewWeightCheckin`).
+ * `cow_id` IS included because the caller must always target an existing
+ * cow. The DB-level `unique (cow_id, record_date)` constraint (migration
+ * 0004) is the single source of truth for "one record per cow per day" —
+ * its `23505` violation is propagated here rather than swallowed, same
+ * "trust the DB, don't duplicate it" contract as `createFatteningPig`.
+ */
+export type NewMilkRecord = Omit<
+  TablesInsert<"milk_records">,
+  "user_id" | "id" | "created_at" | "updated_at"
+>;
+
+/**
+ * Editable milk-record fields for edit. `milk_records` is fully
+ * editable/deletable (not append-only), same rationale as
+ * `WeightCheckinUpdate` — correcting a mistyped daily total is an edit, not
+ * a new insert (which would collide with the unique constraint anyway).
+ */
+export type MilkRecordUpdate = Pick<
+  TablesUpdate<"milk_records">,
+  "record_date" | "liters"
+>;
+
+/**
+ * Lists a cow's milk records newest-first (`record_date` descending). Per
+ * design decision "milk_records history ordered newest-first (DESC)": unlike
+ * `listWeightCheckinsForPig`'s ascending order (which has a baseline
+ * `entry_weight` anchor row), a daily production log has no such anchor, so
+ * surfacing the most recent day first is more useful. No explicit `user_id`
+ * filter — visibility is scoped by the `milk_records_select_own` RLS policy,
+ * same pattern as `listWeightCheckinsForPig`.
+ */
+export async function listMilkRecordsForCow(
+  supabase: SupabaseDb,
+  cowId: string,
+): Promise<MilkRecord[]> {
+  const { data, error } = await supabase
+    .from("milk_records")
+    .select("*")
+    .eq("cow_id", cowId)
+    .order("record_date", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Records a new daily milk total for a cow (spec: "Record a daily milk
+ * total"). Each call inserts a new row. A second insert for the same
+ * `(cow_id, record_date)` is rejected by the DB's `unique (cow_id,
+ * record_date)` constraint (Postgres error code `23505`) — callers (see
+ * `createMilkRecordAction`) MUST catch that specific error and surface
+ * edit-instead guidance rather than a generic failure.
+ */
+export async function createMilkRecord(
+  supabase: SupabaseDb,
+  input: NewMilkRecord,
+): Promise<MilkRecord> {
+  const { data, error } = await supabase
+    .from("milk_records")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Corrects a previously recorded milk total's date/liters in place. Same
+ * pg-safeupdate contract as `updateWeightCheckin`: a bare `.eq('id', id)`
+ * filter alone satisfies Supabase's "UPDATE requires a WHERE clause"
+ * requirement — `id` is already a unique per-row target, and RLS still
+ * scopes which rows are visible to update in the first place.
+ */
+export async function updateMilkRecord(
+  supabase: SupabaseDb,
+  id: string,
+  input: MilkRecordUpdate,
+): Promise<MilkRecord> {
+  const { data, error } = await supabase
+    .from("milk_records")
+    .update(input)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Deletes a mistyped/unwanted milk record. Supabase's pg-safeupdate
+ * extension also rejects a DELETE with no WHERE clause, same as UPDATE — the
+ * `.eq('id', id)` filter here is mandatory for that reason (not just a
+ * defensive ownership check; RLS already scopes which rows are visible).
+ */
+export async function deleteMilkRecord(
+  supabase: SupabaseDb,
+  id: string,
+): Promise<void> {
+  const { error } = await supabase.from("milk_records").delete().eq("id", id);
+
+  if (error) throw error;
+}

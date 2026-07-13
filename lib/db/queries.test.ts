@@ -5,8 +5,10 @@ import {
   createDairyCow,
   createFarrowing,
   createFatteningPig,
+  createMilkRecord,
   createSow,
   createWeightCheckin,
+  deleteMilkRecord,
   deleteWeightCheckin,
   getDairyCow,
   getFarrowing,
@@ -17,12 +19,14 @@ import {
   listActiveFarrowings,
   listActiveFatteningPigs,
   listFarrowingsForSow,
+  listMilkRecordsForCow,
   listSows,
   listWeightCheckinsForPig,
   markDairyCowExited,
   markFatteningPigSold,
   updateFarrowingCounter,
   updateFeedingConfig,
+  updateMilkRecord,
   updateSow,
   updateWeightCheckin,
   weanFarrowing,
@@ -35,6 +39,7 @@ type FeedingConfigRow = Tables<"feeding_config">;
 type FatteningPig = Tables<"fattening_pigs">;
 type WeightCheckin = Tables<"weight_checkins">;
 type DairyCow = Tables<"dairy_cows">;
+type MilkRecord = Tables<"milk_records">;
 type Call = { method: string; args: unknown[] };
 
 /**
@@ -751,6 +756,142 @@ describe("deleteWeightCheckin", () => {
 
     await expect(deleteWeightCheckin(supabase, "checkin-1")).rejects.toEqual({
       message: "permission denied for table weight_checkins",
+    });
+  });
+});
+
+const sampleMilkRecord: MilkRecord = {
+  id: "record-1",
+  user_id: "user-1",
+  cow_id: "cow-1",
+  record_date: "2026-07-12",
+  liters: 18.5,
+  created_at: "2026-07-12T00:00:00Z",
+  updated_at: "2026-07-12T00:00:00Z",
+};
+
+describe("listMilkRecordsForCow", () => {
+  it("selects records for the given cow ordered by record_date DESCENDING (newest first), without an explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleMilkRecord],
+      error: null,
+    });
+
+    const result = await listMilkRecordsForCow(supabase, "cow-1");
+
+    expect(result).toEqual([sampleMilkRecord]);
+    expect(calls).toEqual([
+      { method: "from", args: ["milk_records"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["cow_id", "cow-1"] },
+      { method: "order", args: ["record_date", { ascending: false }] },
+    ]);
+    // Farm isolation relies on RLS (auth.uid() = user_id), never an
+    // app-level user_id filter — same contract as listWeightCheckinsForPig.
+    expect(
+      calls.some((call) => call.method === "eq" && call.args[0] === "user_id"),
+    ).toBe(false);
+  });
+
+  it("returns an empty list for a cow with zero records, without an error (spec: 'Zero records yet')", async () => {
+    const { supabase } = fakeSupabase({ data: [], error: null });
+
+    const result = await listMilkRecordsForCow(supabase, "cow-1");
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe("createMilkRecord", () => {
+  it("inserts only the editable fields plus cow_id, never a caller-supplied user_id", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleMilkRecord,
+      error: null,
+    });
+
+    const result = await createMilkRecord(supabase, {
+      cow_id: "cow-1",
+      record_date: "2026-07-12",
+      liters: 18.5,
+    });
+
+    expect(result).toEqual(sampleMilkRecord);
+    const insertCall = calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toEqual({
+      cow_id: "cow-1",
+      record_date: "2026-07-12",
+      liters: 18.5,
+    });
+    expect(insertCall?.args[0]).not.toHaveProperty("user_id");
+  });
+
+  it("propagates a duplicate (cow_id, record_date) unique-violation error instead of swallowing it (spec: Duplicate-date rejection)", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: {
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "milk_records_cow_id_record_date_key"',
+      },
+    });
+
+    await expect(
+      createMilkRecord(supabase, {
+        cow_id: "cow-1",
+        record_date: "2026-07-12",
+        liters: 18.5,
+      }),
+    ).rejects.toMatchObject({ code: "23505" });
+  });
+});
+
+describe("updateMilkRecord", () => {
+  it("updates record_date and liters for the given id, scoped only by eq('id', id) — pg-safeupdate satisfied by id alone, same as updateWeightCheckin", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleMilkRecord, liters: 19.0 },
+      error: null,
+    });
+
+    const result = await updateMilkRecord(supabase, "record-1", {
+      record_date: "2026-07-12",
+      liters: 19.0,
+    });
+
+    expect(result.liters).toBe(19.0);
+    expect(calls).toEqual([
+      { method: "from", args: ["milk_records"] },
+      {
+        method: "update",
+        args: [{ record_date: "2026-07-12", liters: 19.0 }],
+      },
+      { method: "eq", args: ["id", "record-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("deleteMilkRecord", () => {
+  it("deletes the record scoped only by eq('id', id) — pg-safeupdate applies to DELETE too, id alone is sufficient", async () => {
+    const { supabase, calls } = fakeSupabase({ data: null, error: null });
+
+    await deleteMilkRecord(supabase, "record-1");
+
+    expect(calls).toEqual([
+      { method: "from", args: ["milk_records"] },
+      { method: "delete", args: [] },
+      { method: "eq", args: ["id", "record-1"] },
+    ]);
+  });
+
+  it("propagates a Postgres/RLS error instead of swallowing it", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: { message: "permission denied for table milk_records" },
+    });
+
+    await expect(deleteMilkRecord(supabase, "record-1")).rejects.toEqual({
+      message: "permission denied for table milk_records",
     });
   });
 });
