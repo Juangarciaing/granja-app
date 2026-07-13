@@ -54,6 +54,9 @@ export default async function DashboardPage() {
         <Link href="/fattening-pigs" className="btn-secondary">
           Ver cerdos de engorde
         </Link>
+        <Link href="/dairy-cows" className="btn-secondary">
+          Ver vacas lecheras
+        </Link>
         <Link href="/config" className="btn-secondary">
           Configuración de alimento
         </Link>
