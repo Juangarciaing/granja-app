@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { markFatteningPigSoldAction } from "@/app/(app)/fattening-pigs/actions";
 import {
+  assignPigToPenAction,
   createWeightCheckinAction,
   deleteWeightCheckinAction,
   updateWeightCheckinAction,
@@ -10,7 +11,11 @@ import {
 import { WeightCheckinForm } from "@/components/weight-checkins/WeightCheckinForm";
 import { WeightCheckinRow } from "@/components/weight-checkins/WeightCheckinRow";
 import { getAuthRedirect } from "@/lib/auth/guard";
-import { getFatteningPig, listWeightCheckinsForPig } from "@/lib/db/queries";
+import {
+  getFatteningPig,
+  listPens,
+  listWeightCheckinsForPig,
+} from "@/lib/db/queries";
 import { createClient } from "@/lib/supabase/server";
 
 const LOGIN_PATH = "/login";
@@ -38,11 +43,16 @@ export default async function FatteningPigDetailPage({
     notFound();
   }
 
-  const checkins = await listWeightCheckinsForPig(supabase, id);
+  const [checkins, pens] = await Promise.all([
+    listWeightCheckinsForPig(supabase, id),
+    listPens(supabase),
+  ]);
 
   const isActive = pig.exit_date === null;
   const boundMarkSoldAction = markFatteningPigSoldAction.bind(null, id);
   const boundCreateCheckinAction = createWeightCheckinAction.bind(null, id);
+  const boundAssignPigToPenAction = assignPigToPenAction.bind(null, id);
+  const currentPen = pens.find((pen) => pen.id === pig.pen_id);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-6">
@@ -84,7 +94,46 @@ export default async function FatteningPigDetailPage({
             )}
           </dd>
         </div>
+        <div className="flex justify-between">
+          <dt className="text-ink-muted">Corral</dt>
+          <dd>
+            {currentPen ? (
+              <span className="chip chip-neutral">{currentPen.name}</span>
+            ) : (
+              <span className="chip chip-neutral">Sin corral</span>
+            )}
+          </dd>
+        </div>
       </dl>
+
+      {/*
+        Pig↔pen assignment (design: "assignment surface = pig detail page
+        (canonical)") — a plain select bound to `assignPigToPenAction`. The
+        empty-value "Sin corral" option maps to `pen_id: null` (unassign).
+      */}
+      <div className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium">Asignar a corral</h2>
+        <form
+          action={boundAssignPigToPenAction}
+          className="flex flex-wrap items-center gap-2"
+        >
+          <select
+            name="pen_id"
+            defaultValue={pig.pen_id ?? ""}
+            className="rounded border border-border bg-surface-1 px-3 py-2 text-ink"
+          >
+            <option value="">Sin corral</option>
+            {pens.map((pen) => (
+              <option key={pen.id} value={pen.id}>
+                {pen.name}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="btn-secondary">
+            Guardar corral
+          </button>
+        </form>
+      </div>
 
       {/*
         Growth curve v1 (spec: "View Weight History / Growth Curve") — a

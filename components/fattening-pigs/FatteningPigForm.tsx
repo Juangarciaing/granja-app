@@ -7,12 +7,18 @@ import {
   type FatteningPigActionState,
 } from "@/lib/fattening-pigs/form-state";
 
+type FatteningPigFormPen = {
+  id: string;
+  name: string;
+};
+
 type FatteningPigFormProps = {
   action: (
     state: FatteningPigActionState,
     formData: FormData,
   ) => Promise<FatteningPigActionState>;
   submitLabel: string;
+  pens?: FatteningPigFormPen[];
 };
 
 /**
@@ -20,9 +26,16 @@ type FatteningPigFormProps = {
  * ear_tag, entry_date and entry_weight. Mirrors `SowForm`/`FarrowingForm`:
  * a plain `useActionState`-bound form with no client-side validation beyond
  * native input types, deferring to the injected Server Action's
- * `parseFatteningPigForm` for the actual rules.
+ * `parseFatteningPigForm` for the actual rules. `pens` is optional (design:
+ * "register form also accepts an optional initial pen") — an empty/omitted
+ * list still renders the "Sin corral" option alone, submitting an empty
+ * `pen_id` (parsed as `null` by `parseFatteningPigForm`).
  */
-export function FatteningPigForm({ action, submitLabel }: FatteningPigFormProps) {
+export function FatteningPigForm({
+  action,
+  submitLabel,
+  pens = [],
+}: FatteningPigFormProps) {
   const [state, formAction, pending] = useActionState(
     action,
     initialFatteningPigActionState,
@@ -83,6 +96,25 @@ export function FatteningPigForm({ action, submitLabel }: FatteningPigFormProps)
             {state.errors.entry_weight}
           </p>
         )}
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="pen_id" className="text-sm font-medium">
+          Corral (opcional)
+        </label>
+        <select
+          id="pen_id"
+          name="pen_id"
+          defaultValue=""
+          className="rounded border border-border bg-surface-1 px-3 py-2 text-ink"
+        >
+          <option value="">Sin corral</option>
+          {pens.map((pen) => (
+            <option key={pen.id} value={pen.id}>
+              {pen.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <button type="submit" disabled={pending} className="btn-primary">

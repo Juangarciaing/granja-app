@@ -53,6 +53,63 @@ describe("FatteningPigForm", () => {
     expect(submittedFormData.get("entry_weight")).toBe("18.5");
   });
 
+  it("renders an optional pen select with a 'Sin corral' option plus every provided pen", () => {
+    render(
+      <FatteningPigForm
+        action={vi.fn(
+          async () => ({ errors: {} }) satisfies FatteningPigActionState,
+        )}
+        submitLabel="Registrar"
+        pens={[
+          { id: "pen-1", name: "Corral A" },
+          { id: "pen-2", name: "Corral B" },
+        ]}
+      />,
+    );
+
+    const select = screen.getByLabelText(/corral/i) as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Sin corral" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Corral A" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Corral B" })).toBeInTheDocument();
+  });
+
+  it("submits the selected pen_id (or an empty value for 'Sin corral') through the injected action", async () => {
+    const action = vi.fn<
+      (
+        state: FatteningPigActionState,
+        formData: FormData,
+      ) => Promise<FatteningPigActionState>
+    >(async () => ({ errors: {} }));
+
+    render(
+      <FatteningPigForm
+        action={action}
+        submitLabel="Registrar"
+        pens={[{ id: "pen-1", name: "Corral A" }]}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Arete"), {
+      target: { value: "A12" },
+    });
+    fireEvent.change(screen.getByLabelText(/fecha de ingreso/i), {
+      target: { value: "2026-07-01" },
+    });
+    fireEvent.change(screen.getByLabelText(/peso inicial/i), {
+      target: { value: "18.5" },
+    });
+    fireEvent.change(screen.getByLabelText(/corral/i), {
+      target: { value: "pen-1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
+
+    await vi.waitFor(() => expect(action).toHaveBeenCalled());
+
+    const submittedFormData = action.mock.calls[0][1];
+    expect(submittedFormData.get("pen_id")).toBe("pen-1");
+  });
+
   it("displays the ear_tag validation error returned by the action", async () => {
     const action = vi.fn(
       async () =>

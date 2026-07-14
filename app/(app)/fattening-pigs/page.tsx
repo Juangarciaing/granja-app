@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { getAuthRedirect } from "@/lib/auth/guard";
-import { listActiveFatteningPigs } from "@/lib/db/queries";
+import { listActiveFatteningPigs, listPens } from "@/lib/db/queries";
 import { createClient } from "@/lib/supabase/server";
 
 const LOGIN_PATH = "/login";
@@ -18,7 +18,11 @@ export default async function FatteningPigsPage() {
     redirect(redirectTo);
   }
 
-  const pigs = await listActiveFatteningPigs(supabase);
+  const [pigs, pens] = await Promise.all([
+    listActiveFatteningPigs(supabase),
+    listPens(supabase),
+  ]);
+  const penNameById = new Map(pens.map((pen) => [pen.id, pen.name]));
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
@@ -46,6 +50,9 @@ export default async function FatteningPigsPage() {
                 className="flex items-center justify-between gap-3"
               >
                 <span className="font-display text-lg">{pig.ear_tag}</span>
+                <span className="chip chip-neutral">
+                  {pig.pen_id ? penNameById.get(pig.pen_id) ?? "Sin corral" : "Sin corral"}
+                </span>
                 <span className="font-mono text-sm tabular-nums text-ink-muted">
                   {pig.entry_date} · {pig.entry_weight} kg
                 </span>

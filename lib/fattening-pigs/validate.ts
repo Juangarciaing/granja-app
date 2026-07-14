@@ -2,6 +2,7 @@ export type FatteningPigFormValues = {
   ear_tag: string;
   entry_date: string;
   entry_weight: number;
+  pen_id: string | null;
 };
 
 export type FatteningPigFormErrors = {
@@ -21,7 +22,10 @@ export type ParseFatteningPigFormResult =
  * Fattening Pig": `ear_tag`, `entry_date` and `entry_weight` are all
  * required, and `entry_weight` must be a positive number — the DB-level
  * `check (entry_weight > 0)` constraint (migration 0003) is a defense in
- * depth, not a substitute for this app-level validation.
+ * depth, not a substitute for this app-level validation. `pen_id` is
+ * optional (design: "register form also accepts an optional initial pen") —
+ * an empty/missing value means "no initial pen" (`null`), never a
+ * validation error.
  */
 export function parseFatteningPigForm(
   formData: FormData,
@@ -44,9 +48,12 @@ export function parseFatteningPigForm(
     errors.entry_weight = "El peso inicial debe ser un número mayor a 0.";
   }
 
+  const penIdRaw = String(formData.get("pen_id") ?? "").trim();
+  const pen_id = penIdRaw === "" ? null : penIdRaw;
+
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
 
-  return { ok: true, value: { ear_tag, entry_date, entry_weight } };
+  return { ok: true, value: { ear_tag, entry_date, entry_weight, pen_id } };
 }

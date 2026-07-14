@@ -17,8 +17,40 @@ describe("parseFatteningPigForm", () => {
 
     expect(result).toEqual({
       ok: true,
-      value: { ear_tag: "A12", entry_date: "2026-07-01", entry_weight: 18.5 },
+      value: {
+        ear_tag: "A12",
+        entry_date: "2026-07-01",
+        entry_weight: 18.5,
+        pen_id: null,
+      },
     });
+  });
+
+  it("accepts an optional pen_id and includes it in the parsed value — design: register form also accepts an optional initial pen", () => {
+    const result = parseFatteningPigForm(
+      formData({
+        ear_tag: "A12",
+        entry_date: "2026-07-01",
+        entry_weight: "18.5",
+        pen_id: "pen-1",
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.pen_id).toBe("pen-1");
+    }
+  });
+
+  it("treats a missing or empty pen_id as no initial pen (null)", () => {
+    const result = parseFatteningPigForm(
+      formData({ ear_tag: "A12", entry_date: "2026-07-01", entry_weight: "18.5" }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.pen_id).toBeNull();
+    }
   });
 
   it("trims the ear_tag", () => {

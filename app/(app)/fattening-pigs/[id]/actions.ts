@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  assignPigToPen,
   createWeightCheckin,
   deleteWeightCheckin,
   getFatteningPig,
@@ -91,4 +92,38 @@ export async function deleteWeightCheckinAction(
   await deleteWeightCheckin(supabase, checkinId);
 
   revalidatePath(`/fattening-pigs/${fatteningPigId}`);
+}
+
+/**
+ * Server Action bound to the pig detail page's pen `<select>` via
+ * `.bind(null, fatteningPigId)`, used directly as a `<form action>` (void,
+ * no client-side form state — same "reset via fresh page load" shape as
+ * `markFatteningPigSoldAction`). An empty `pen_id` value (the "Sin corral"
+ * option) is treated as unassignment. `getFatteningPig` before the update is
+ * the same ownership guard `createWeightCheckinAction` uses for `sowId`/
+ * `fatteningPigId`: `assignPigToPen` is a bare `.eq('id', id)` update, so
+ * nothing else stops this action from being invoked with a pig the caller
+ * doesn't own. Revalidates the pig's own page plus both the pig's previous
+ * pen (if any) and its newly assigned pen (if any) detail pages, since both
+ * list their assigned pigs (design: "assignment surface = pig detail page
+ * (canonical)").
+ */
+export async function assignPigToPenAction(
+  fatteningPigId: string,
+  formData: FormData,
+): Promise<void> {
+  const penIdRaw = String(formData.get("pen_id") ?? "").trim();
+  const penId = penIdRaw === "" ? null : penIdRaw;
+
+  const supabase = await createClient();
+  const pig = await getFatteningPig(supabase, fatteningPigId);
+  await assignPigToPen(supabase, fatteningPigId, penId);
+
+  revalidatePath(`/fattening-pigs/${fatteningPigId}`);
+  if (pig.pen_id) {
+    revalidatePath(`/pens/${pig.pen_id}`);
+  }
+  if (penId) {
+    revalidatePath(`/pens/${penId}`);
+  }
 }
