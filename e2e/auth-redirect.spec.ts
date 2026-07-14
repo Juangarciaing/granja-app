@@ -9,11 +9,24 @@ import { expect, test } from "@playwright/test";
  */
 test.describe("Auth guard (unauthenticated)", () => {
   test("visiting the dashboard redirects to /login", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
 
     await expect(page).toHaveURL(/\/login$/);
     await expect(
       page.getByRole("heading", { name: "Iniciar sesión" }),
+    ).toBeVisible();
+  });
+
+  test("visiting / renders the public landing page (no redirect)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole("heading", {
+        name: "Llevá el control de tu granja en un solo lugar",
+      }),
     ).toBeVisible();
   });
 

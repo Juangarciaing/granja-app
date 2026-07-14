@@ -24,7 +24,7 @@ test.describe("PWA installability", () => {
     const manifest = await response.json();
     expect(manifest.name).toBe("Granja — Calculadora de Alimento");
     expect(manifest.short_name).toBe("Granja");
-    expect(manifest.start_url).toBe("/");
+    expect(manifest.start_url).toBe("/dashboard");
     expect(manifest.display).toBe("standalone");
     expect(manifest.icons).toEqual(
       expect.arrayContaining([

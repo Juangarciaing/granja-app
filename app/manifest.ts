@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Granja",
     description:
       "Registro de cerdas, partos y cálculo de alimento diario en lactancia.",
-    start_url: "/",
+    start_url: "/dashboard",
     display: "standalone",
     background_color: "#efe9da",
     theme_color: "#2e6b3f",

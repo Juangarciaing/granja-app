@@ -5,14 +5,14 @@ import { getAuthenticatedRedirect } from "@/lib/auth/guard";
 import { getSupabasePublicEnv } from "@/lib/env";
 
 const AUTH_PATHS = ["/login", "/signup"] as const;
-const HOME_PATH = "/";
+const HOME_PATH = "/dashboard";
 
 /**
  * Refreshes the Supabase auth session on every request so server-rendered
  * pages always see an up-to-date session cookie. Also redirects an
  * already-authenticated user away from the auth-only pages (`/login`,
- * `/signup`) to `/`, server-side, before the form ever renders. Invoked
- * from the root `middleware.ts`.
+ * `/signup`) to `/dashboard`, server-side, before the form ever renders.
+ * Invoked from the root `middleware.ts`.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });

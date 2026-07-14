@@ -67,7 +67,7 @@ export default async function PensPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
-      <Link href="/" className="text-sm font-medium text-ink-muted hover:text-ink">
+      <Link href="/dashboard" className="text-sm font-medium text-ink-muted hover:text-ink">
         ‹ Inicio
       </Link>
 
