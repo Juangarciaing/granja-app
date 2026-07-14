@@ -25,7 +25,7 @@ test.describe("Auth guard (unauthenticated)", () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(
       page.getByRole("heading", {
-        name: "Llevá el control de tu granja en un solo lugar",
+        name: "Dejá el cuaderno. Controlá tu granja desde el celular.",
       }),
     ).toBeVisible();
   });
