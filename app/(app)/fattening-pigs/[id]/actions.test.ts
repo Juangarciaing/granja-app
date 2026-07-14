@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockRevalidatePath = vi.fn();
 const mockGetFatteningPig = vi.fn();
 const mockAssignPigToPen = vi.fn();
+const mockGetPen = vi.fn();
 
 vi.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
@@ -13,6 +14,7 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/db/queries", () => ({
   getFatteningPig: (...args: unknown[]) => mockGetFatteningPig(...args),
   assignPigToPen: (...args: unknown[]) => mockAssignPigToPen(...args),
+  getPen: (...args: unknown[]) => mockGetPen(...args),
 }));
 
 import { assignPigToPenAction } from "@/app/(app)/fattening-pigs/[id]/actions";
@@ -29,6 +31,8 @@ beforeEach(() => {
   mockRevalidatePath.mockClear();
   mockGetFatteningPig.mockClear();
   mockAssignPigToPen.mockClear();
+  mockGetPen.mockClear();
+  mockGetPen.mockResolvedValue({ id: "pen-1", name: "Corral 1" });
 });
 
 describe("assignPigToPenAction", () => {
@@ -73,6 +77,24 @@ describe("assignPigToPenAction", () => {
 
     expect(mockRevalidatePath).toHaveBeenCalledWith("/pens/pen-old");
     expect(mockRevalidatePath).toHaveBeenCalledWith("/pens/pen-new");
+  });
+
+  it("verifies ownership of the TARGET pen before assigning — a bare FK bypasses RLS same as any other child insert/update", async () => {
+    mockGetFatteningPig.mockResolvedValue({ id: "pig-1", pen_id: null });
+    mockAssignPigToPen.mockResolvedValue({ id: "pig-1", pen_id: "pen-1" });
+
+    await assignPigToPenAction("pig-1", formData({ pen_id: "pen-1" }));
+
+    expect(mockGetPen).toHaveBeenCalledWith(expect.anything(), "pen-1");
+  });
+
+  it("does not call getPen when unassigning (pen_id empty) — there is no target pen to verify", async () => {
+    mockGetFatteningPig.mockResolvedValue({ id: "pig-1", pen_id: "pen-old" });
+    mockAssignPigToPen.mockResolvedValue({ id: "pig-1", pen_id: null });
+
+    await assignPigToPenAction("pig-1", formData({ pen_id: "" }));
+
+    expect(mockGetPen).not.toHaveBeenCalled();
   });
 
   it("calls getFatteningPig before assignPigToPen — ownership guard runs first", async () => {

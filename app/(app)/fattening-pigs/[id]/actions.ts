@@ -8,6 +8,7 @@ import {
   createWeightCheckin,
   deleteWeightCheckin,
   getFatteningPig,
+  getPen,
   updateWeightCheckin,
 } from "@/lib/db/queries";
 import type { WeightCheckinActionState } from "@/lib/weight-checkins/form-state";
@@ -117,6 +118,13 @@ export async function assignPigToPenAction(
 
   const supabase = await createClient();
   const pig = await getFatteningPig(supabase, fatteningPigId);
+  // Verify ownership of the TARGET pen too, not just the pig — `pen_id` is a
+  // bare FK, and Postgres FK checks bypass RLS, so without this a caller
+  // could otherwise assign their own pig to a pen id they don't actually
+  // own (same reasoning already applied to createFeedLogAction's pen guard).
+  if (penId) {
+    await getPen(supabase, penId);
+  }
   await assignPigToPen(supabase, fatteningPigId, penId);
 
   revalidatePath(`/fattening-pigs/${fatteningPigId}`);
