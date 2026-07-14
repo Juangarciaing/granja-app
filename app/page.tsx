@@ -51,6 +51,44 @@ const STEPS = [
   },
 ] as const;
 
+const TRUST_POINTS = ["Sin tarjeta", "Sin trámites", "Sin límite de animales"] as const;
+
+const FAQS = [
+  {
+    question: "¿Necesito internet todo el tiempo?",
+    answer:
+      "Sí, es una app web: necesitás conexión para cargar y guardar datos. Podés instalarla en la pantalla de inicio de tu celular para acceder más rápido, pero no funciona sin internet.",
+  },
+  {
+    question: "¿Sirve si tengo pocos animales?",
+    answer: "Sí. No hay mínimo ni máximo — funciona igual con 3 cerdas que con 300.",
+  },
+  {
+    question: "¿Mis datos están seguros?",
+    answer:
+      "Cada cuenta ve únicamente sus propios animales y registros. Nadie más, ni siquiera otra cuenta registrada en Granja, puede verlos.",
+  },
+  {
+    question: "¿Tiene algún costo?",
+    answer: "No. Hoy Granja es 100% gratis, sin límite de tiempo ni de animales.",
+  },
+] as const;
+
+function TrustPoints() {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+      {TRUST_POINTS.map((point) => (
+        <span key={point} className="inline-flex items-center gap-1">
+          <span className="text-accent" aria-hidden="true">
+            ✓
+          </span>
+          {point}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 // Public landing page: renders for everyone, authenticated or not. Reads
 // the session only to branch the CTA set via the pure getLandingCtas — it
 // never calls redirect(), unlike the (app) layout's auth guard.
@@ -64,6 +102,23 @@ export default async function LandingPage() {
 
   return (
     <main className="flex flex-1 flex-col">
+      <header className="flex items-center justify-between border-b border-border px-6 py-4">
+        <span className="font-display text-xl text-accent">Granja</span>
+        <nav className="flex items-center gap-4">
+          {ctas.length > 1 && (
+            <Link
+              href={ctas[1].href}
+              className="text-sm font-medium text-ink-muted hover:text-ink"
+            >
+              {ctas[1].label}
+            </Link>
+          )}
+          <Link href={ctas[0].href} className="btn-primary">
+            {ctas[0].label}
+          </Link>
+        </nav>
+      </header>
+
       <section className="grid gap-10 px-6 py-16 sm:py-24 lg:grid-cols-2 lg:items-center">
         <div className="flex flex-col gap-6">
           <span className="chip chip-good w-fit">100% gratis, sin tarjeta</span>
@@ -86,9 +141,7 @@ export default async function LandingPage() {
               </Link>
             ))}
           </div>
-          <p className="text-xs text-ink-faint">
-            Sin costo, sin límite de animales, sin letra chica.
-          </p>
+          <TrustPoints />
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element -- local
             trusted SVG; next/image's optimizer refuses SVGs without
@@ -101,31 +154,39 @@ export default async function LandingPage() {
       </section>
 
       <section className="px-6 pb-16 sm:pb-24">
-        <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded border border-border bg-surface-1 p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-            Así se ve tu panel
-          </p>
-          <ul className="flex flex-col gap-2">
-            <li className="tag-card flex items-center justify-between gap-3">
-              <span className="font-display text-base">Cerda 214</span>
-              <span className="chip chip-good">Lactando</span>
-              <span className="font-mono text-sm tabular-nums text-ink-muted">
-                8 lechones
-              </span>
-            </li>
-            <li className="tag-card flex items-center justify-between gap-3">
-              <span className="font-display text-base">Corral 3</span>
-              <span className="font-mono text-sm tabular-nums text-ink-muted">
-                FCR 2.4
-              </span>
-            </li>
-            <li className="tag-card flex items-center justify-between gap-3">
-              <span className="font-display text-base">Vaca Manchas</span>
-              <span className="font-mono text-sm tabular-nums text-ink-muted">
-                18.5 L hoy
-              </span>
-            </li>
-          </ul>
+        <div className="relative mx-auto w-full max-w-xs">
+          <div className="absolute -inset-10 -z-10 rounded-full bg-accent-wash blur-3xl" />
+          <div className="absolute -inset-10 -z-10 translate-x-10 rounded-full bg-ochre-wash blur-3xl" />
+          <div className="rounded-[2.5rem] border-[6px] border-ink bg-ink p-2 shadow-2xl">
+            <div className="flex flex-col gap-3 rounded-[2rem] bg-surface-1 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+                Así se ve tu panel
+              </p>
+              <ul className="flex flex-col gap-2">
+                <li className="tag-card flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-display text-base">Cerda 214</span>
+                    <span className="chip chip-good">Lactando</span>
+                  </div>
+                  <span className="font-mono text-sm tabular-nums text-ink-muted">
+                    8 lechones
+                  </span>
+                </li>
+                <li className="tag-card flex items-center justify-between gap-3">
+                  <span className="font-display text-base">Corral 3</span>
+                  <span className="font-mono text-sm tabular-nums text-ink-muted">
+                    FCR 2.4
+                  </span>
+                </li>
+                <li className="tag-card flex items-center justify-between gap-3">
+                  <span className="font-display text-base">Vaca Manchas</span>
+                  <span className="font-mono text-sm tabular-nums text-ink-muted">
+                    18.5 L hoy
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -161,6 +222,20 @@ export default async function LandingPage() {
         </ol>
       </section>
 
+      <section className="flex flex-col gap-6 px-6 pb-16 sm:pb-24">
+        <h2 className="text-2xl">Preguntas frecuentes</h2>
+        <div className="flex flex-col gap-2">
+          {FAQS.map((faq) => (
+            <details key={faq.question} className="tag-card">
+              <summary className="cursor-pointer font-display text-lg marker:text-accent">
+                {faq.question}
+              </summary>
+              <p className="mt-2 text-sm text-ink-muted">{faq.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       <section className="flex flex-col items-start gap-4 border-t border-border px-6 py-16 sm:py-20">
         <h2 className="text-2xl">Registrate gratis y empezá hoy</h2>
         <p className="max-w-md text-sm text-ink-muted">
@@ -178,6 +253,10 @@ export default async function LandingPage() {
           ))}
         </div>
       </section>
+
+      <footer className="border-t border-border px-6 py-8 text-center text-xs text-ink-faint">
+        © {new Date().getFullYear()} Granja
+      </footer>
     </main>
   );
 }
