@@ -727,6 +727,112 @@ export async function deleteMilkRecord(
   if (error) throw error;
 }
 
+export type HeatEvent = Tables<"heat_events">;
+
+/**
+ * Editable heat-event fields for create. `user_id`, `id` and
+ * `created_at`/`updated_at` are intentionally excluded: `user_id` is
+ * assigned by RLS default (same ownership contract as `NewMilkRecord`).
+ * `cow_id` IS included because the caller must always target an existing
+ * cow. Unlike `NewMilkRecord`, there is no DB-level uniqueness constraint
+ * to enforce — a heat observation is a point-in-time event, not a daily
+ * aggregate, so repeated same-day observations are legitimate (spec:
+ * "Multiple observations same day").
+ */
+export type NewHeatEvent = Omit<
+  TablesInsert<"heat_events">,
+  "user_id" | "id" | "created_at" | "updated_at"
+>;
+
+/**
+ * Editable heat-event fields for edit. `heat_events` is fully
+ * editable/deletable (not append-only), same rationale as
+ * `MilkRecordUpdate` — correcting a mistyped observed date is an edit, not
+ * a new insert.
+ */
+export type HeatEventUpdate = Pick<
+  TablesUpdate<"heat_events">,
+  "observed_date" | "notes"
+>;
+
+/**
+ * Lists a cow's heat events newest-first (`observed_date` descending),
+ * same ordering rationale as `listMilkRecordsForCow`. No explicit
+ * `user_id` filter — visibility is scoped by the `heat_events_select_own`
+ * RLS policy.
+ */
+export async function listHeatEventsForCow(
+  supabase: SupabaseDb,
+  cowId: string,
+): Promise<HeatEvent[]> {
+  const { data, error } = await supabase
+    .from("heat_events")
+    .select("*")
+    .eq("cow_id", cowId)
+    .order("observed_date", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Records a new heat observation for a cow (spec: "Record a heat
+ * observation"). Each call inserts a new row; unlike `createMilkRecord`,
+ * there is no unique-constraint violation to catch — same-day duplicate
+ * observations are saved as separate rows (spec: "Multiple observations
+ * same day").
+ */
+export async function createHeatEvent(
+  supabase: SupabaseDb,
+  input: NewHeatEvent,
+): Promise<HeatEvent> {
+  const { data, error } = await supabase
+    .from("heat_events")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Corrects a previously recorded heat observation's date/notes in place.
+ * Same pg-safeupdate contract as `updateMilkRecord`: a bare `.eq('id',
+ * id)` filter alone satisfies Supabase's "UPDATE requires a WHERE clause"
+ * requirement.
+ */
+export async function updateHeatEvent(
+  supabase: SupabaseDb,
+  id: string,
+  input: HeatEventUpdate,
+): Promise<HeatEvent> {
+  const { data, error } = await supabase
+    .from("heat_events")
+    .update(input)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Deletes an erroneous heat event entry (spec: "Delete an erroneous
+ * entry"). Supabase's pg-safeupdate extension also rejects a DELETE with
+ * no WHERE clause, same as UPDATE — the `.eq('id', id)` filter here is
+ * mandatory for that reason.
+ */
+export async function deleteHeatEvent(
+  supabase: SupabaseDb,
+  id: string,
+): Promise<void> {
+  const { error } = await supabase.from("heat_events").delete().eq("id", id);
+
+  if (error) throw error;
+}
+
 export type Pen = Tables<"pens">;
 
 /**

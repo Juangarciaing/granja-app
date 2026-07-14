@@ -219,6 +219,44 @@ export type Database = {
         }
         Relationships: []
       }
+      heat_events: {
+        Row: {
+          cow_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          observed_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cow_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          observed_date: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          cow_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          observed_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "heat_events_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "dairy_cows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milk_records: {
         Row: {
           cow_id: string

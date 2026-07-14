@@ -4,15 +4,21 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  createHeatEvent,
   createMilkRecord,
+  deleteHeatEvent,
   deleteMilkRecord,
   getDairyCow,
+  updateHeatEvent,
   updateMilkRecord,
 } from "@/lib/db/queries";
+import type { HeatEventActionState } from "@/lib/heat-events/form-state";
+import { parseHeatEventForm } from "@/lib/heat-events/validate";
 import type { MilkRecordActionState } from "@/lib/milk-records/form-state";
 import { parseMilkRecordForm } from "@/lib/milk-records/validate";
 import { createClient } from "@/lib/supabase/server";
 
+export type { HeatEventActionState } from "@/lib/heat-events/form-state";
 export type { MilkRecordActionState } from "@/lib/milk-records/form-state";
 
 const DUPLICATE_RECORD_DATE_MESSAGE =
@@ -116,6 +122,84 @@ export async function deleteMilkRecordAction(
 ): Promise<void> {
   const supabase = await createClient();
   await deleteMilkRecord(supabase, recordId);
+
+  revalidatePath(`/dairy-cows/${cowId}`);
+}
+
+/**
+ * Server Action bound to the "record heat observation" form via
+ * `.bind(null, cowId)`. Validation happens in the pure, unit-tested
+ * `parseHeatEventForm` first. The `getDairyCow` call before insert is the
+ * same deliberate ownership guard `createMilkRecordAction` uses for
+ * `cowId` — `heat_events.cow_id` is a bare FK, and Postgres FK checks
+ * bypass RLS, so nothing else stops this action from being called
+ * directly with a `cowId` the caller doesn't own.
+ *
+ * Unlike `createMilkRecordAction`, there is no unique-violation branch to
+ * catch here — `heat_events` has no `unique(cow_id, observed_date)`
+ * constraint, so a same-day duplicate observation is simply inserted as a
+ * second row (spec: "Multiple observations same day").
+ */
+export async function createHeatEventAction(
+  cowId: string,
+  _prevState: HeatEventActionState,
+  formData: FormData,
+): Promise<HeatEventActionState> {
+  const result = parseHeatEventForm(formData);
+  if (!result.ok) {
+    return { errors: result.errors };
+  }
+
+  const supabase = await createClient();
+  await getDairyCow(supabase, cowId);
+
+  await createHeatEvent(supabase, {
+    cow_id: cowId,
+    observed_date: result.value.observed_date,
+    notes: result.value.notes,
+  });
+
+  revalidatePath(`/dairy-cows/${cowId}`);
+  redirect(`/dairy-cows/${cowId}`);
+}
+
+/**
+ * Server Action bound to a `HeatEventRow`'s inline edit form via
+ * `.bind(null, heatEventId, cowId)`. Corrects a mistyped observed
+ * date/notes in place (spec: "Edit and delete a heat event"). Redirects
+ * back to the cow detail page on success, same "reset via fresh page
+ * load" rationale as `updateMilkRecordAction`.
+ */
+export async function updateHeatEventAction(
+  heatEventId: string,
+  cowId: string,
+  _prevState: HeatEventActionState,
+  formData: FormData,
+): Promise<HeatEventActionState> {
+  const result = parseHeatEventForm(formData);
+  if (!result.ok) {
+    return { errors: result.errors };
+  }
+
+  const supabase = await createClient();
+  await updateHeatEvent(supabase, heatEventId, result.value);
+
+  revalidatePath(`/dairy-cows/${cowId}`);
+  redirect(`/dairy-cows/${cowId}`);
+}
+
+/**
+ * Deletes a heat event. Bound via `.bind(null, heatEventId, cowId)` and
+ * used directly as a `<form action>`, mirroring `deleteMilkRecordAction` —
+ * a void action with no client-side form state, so only `revalidatePath`
+ * is needed.
+ */
+export async function deleteHeatEventAction(
+  heatEventId: string,
+  cowId: string,
+): Promise<void> {
+  const supabase = await createClient();
+  await deleteHeatEvent(supabase, heatEventId);
 
   revalidatePath(`/dairy-cows/${cowId}`);
 }

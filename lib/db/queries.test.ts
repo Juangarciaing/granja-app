@@ -7,11 +7,13 @@ import {
   createFarrowing,
   createFatteningPig,
   createFeedLog,
+  createHeatEvent,
   createMilkRecord,
   createPen,
   createSow,
   createWeightCheckin,
   deleteFeedLog,
+  deleteHeatEvent,
   deleteMilkRecord,
   deleteWeightCheckin,
   getDairyCow,
@@ -27,6 +29,7 @@ import {
   listFarrowingsForSow,
   listFatteningPigsForPen,
   listFeedLogsForPen,
+  listHeatEventsForCow,
   listMilkRecordsForCow,
   listPens,
   listSows,
@@ -37,6 +40,7 @@ import {
   updateFarrowingCounter,
   updateFeedLog,
   updateFeedingConfig,
+  updateHeatEvent,
   updateMilkRecord,
   updatePen,
   updateSaleWeightConfig,
@@ -54,6 +58,7 @@ type FatteningPig = Tables<"fattening_pigs">;
 type WeightCheckin = Tables<"weight_checkins">;
 type DairyCow = Tables<"dairy_cows">;
 type MilkRecord = Tables<"milk_records">;
+type HeatEvent = Tables<"heat_events">;
 type Pen = Tables<"pens">;
 type FeedLog = Tables<"feed_logs">;
 type Call = { method: string; args: unknown[] };
@@ -965,6 +970,136 @@ describe("deleteMilkRecord", () => {
 
     await expect(deleteMilkRecord(supabase, "record-1")).rejects.toEqual({
       message: "permission denied for table milk_records",
+    });
+  });
+});
+
+const sampleHeatEvent: HeatEvent = {
+  id: "heat-1",
+  user_id: "user-1",
+  cow_id: "cow-1",
+  observed_date: "2026-07-10",
+  notes: null,
+  created_at: "2026-07-10T00:00:00Z",
+  updated_at: "2026-07-10T00:00:00Z",
+};
+
+describe("listHeatEventsForCow", () => {
+  it("selects events for the given cow ordered by observed_date DESCENDING (newest first), without an explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleHeatEvent],
+      error: null,
+    });
+
+    const result = await listHeatEventsForCow(supabase, "cow-1");
+
+    expect(result).toEqual([sampleHeatEvent]);
+    expect(calls).toEqual([
+      { method: "from", args: ["heat_events"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["cow_id", "cow-1"] },
+      { method: "order", args: ["observed_date", { ascending: false }] },
+    ]);
+    // Farm isolation relies on RLS (auth.uid() = user_id), never an
+    // app-level user_id filter — same contract as listMilkRecordsForCow.
+    expect(
+      calls.some((call) => call.method === "eq" && call.args[0] === "user_id"),
+    ).toBe(false);
+  });
+
+  it("returns an empty list for a cow with zero events, without an error (spec: 'Zero events yet')", async () => {
+    const { supabase } = fakeSupabase({ data: [], error: null });
+
+    const result = await listHeatEventsForCow(supabase, "cow-1");
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe("createHeatEvent", () => {
+  it("inserts only the editable fields plus cow_id, never a caller-supplied user_id", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleHeatEvent,
+      error: null,
+    });
+
+    const result = await createHeatEvent(supabase, {
+      cow_id: "cow-1",
+      observed_date: "2026-07-10",
+      notes: null,
+    });
+
+    expect(result).toEqual(sampleHeatEvent);
+    const insertCall = calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toEqual({
+      cow_id: "cow-1",
+      observed_date: "2026-07-10",
+      notes: null,
+    });
+    expect(insertCall?.args[0]).not.toHaveProperty("user_id");
+  });
+
+  it("does NOT reject a second event for the same (cow_id, observed_date) — no unique constraint (spec: 'Multiple observations same day')", async () => {
+    const secondEvent: HeatEvent = { ...sampleHeatEvent, id: "heat-2" };
+    const { supabase } = fakeSupabase({ data: secondEvent, error: null });
+
+    const result = await createHeatEvent(supabase, {
+      cow_id: "cow-1",
+      observed_date: "2026-07-10",
+      notes: null,
+    });
+
+    expect(result).toEqual(secondEvent);
+  });
+});
+
+describe("updateHeatEvent", () => {
+  it("updates observed_date and notes for the given id, scoped only by eq('id', id) — pg-safeupdate satisfied by id alone, same as updateMilkRecord", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleHeatEvent, observed_date: "2026-07-11" },
+      error: null,
+    });
+
+    const result = await updateHeatEvent(supabase, "heat-1", {
+      observed_date: "2026-07-11",
+      notes: null,
+    });
+
+    expect(result.observed_date).toBe("2026-07-11");
+    expect(calls).toEqual([
+      { method: "from", args: ["heat_events"] },
+      {
+        method: "update",
+        args: [{ observed_date: "2026-07-11", notes: null }],
+      },
+      { method: "eq", args: ["id", "heat-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("deleteHeatEvent", () => {
+  it("deletes the event scoped only by eq('id', id) — pg-safeupdate applies to DELETE too, id alone is sufficient", async () => {
+    const { supabase, calls } = fakeSupabase({ data: null, error: null });
+
+    await deleteHeatEvent(supabase, "heat-1");
+
+    expect(calls).toEqual([
+      { method: "from", args: ["heat_events"] },
+      { method: "delete", args: [] },
+      { method: "eq", args: ["id", "heat-1"] },
+    ]);
+  });
+
+  it("propagates a Postgres/RLS error instead of swallowing it", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: { message: "permission denied for table heat_events" },
+    });
+
+    await expect(deleteHeatEvent(supabase, "heat-1")).rejects.toEqual({
+      message: "permission denied for table heat_events",
     });
   });
 });
