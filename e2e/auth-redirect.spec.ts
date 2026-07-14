@@ -38,4 +38,58 @@ test.describe("Auth guard (unauthenticated)", () => {
       page.getByRole("button", { name: "Ingresar" }),
     ).toBeVisible();
   });
+
+  test("signup page renders the signup form", async ({ page }) => {
+    await page.goto("/signup");
+
+    await expect(
+      page.getByRole("heading", { name: "Crear cuenta" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Correo")).toBeVisible();
+    await expect(page.getByLabel("Contraseña")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Crear cuenta" }),
+    ).toBeVisible();
+  });
+
+  test("navigates from login to signup via the cross-link", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+
+    await page.getByRole("link", { name: "Registrate" }).click();
+
+    await expect(page).toHaveURL(/\/signup$/);
+    await expect(
+      page.getByRole("heading", { name: "Crear cuenta" }),
+    ).toBeVisible();
+  });
+
+  test("navigates from signup to login via the cross-link", async ({
+    page,
+  }) => {
+    await page.goto("/signup");
+
+    await page.getByRole("link", { name: "Iniciá sesión" }).click();
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(
+      page.getByRole("heading", { name: "Iniciar sesión" }),
+    ).toBeVisible();
+  });
+
+  test("shows a client-side error for a password under 8 characters", async ({
+    page,
+  }) => {
+    await page.goto("/signup");
+
+    await page.getByLabel("Correo").fill("nuevo@example.com");
+    await page.getByLabel("Contraseña").fill("short1");
+    await page.getByRole("button", { name: "Crear cuenta" }).click();
+
+    await expect(
+      page.locator("form").getByRole("alert"),
+    ).toHaveText("La contraseña debe tener al menos 8 caracteres.");
+    await expect(page).toHaveURL(/\/signup$/);
+  });
 });

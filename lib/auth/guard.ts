@@ -16,3 +16,20 @@ export function getAuthRedirect(
 ): string | null {
   return user ? null : loginPath;
 }
+
+/**
+ * Pure decision function symmetric to {@link getAuthRedirect}: given the
+ * current session user (or null) and the current request path, returns the
+ * home path to redirect to when an already-authenticated user is on one of
+ * the auth-only pages (`/login`, `/signup`), or null when no redirect is
+ * needed. Used by `updateSession` (middleware) to bounce authenticated
+ * users away from the auth pages server-side, before the form renders.
+ */
+export function getAuthenticatedRedirect(
+  user: SessionUser,
+  pathname: string,
+  authPaths: readonly string[],
+  homePath: string,
+): string | null {
+  return user && authPaths.includes(pathname) ? homePath : null;
+}

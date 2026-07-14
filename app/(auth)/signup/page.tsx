@@ -4,9 +4,13 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { validatePassword } from "@/lib/auth/validate";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+const DUPLICATE_EMAIL_ERROR_CODE = "user_already_exists";
+const DUPLICATE_EMAIL_MESSAGE_PATTERN = /already registered/i;
+
+export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,18 +20,33 @@ export default function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
     setIsSubmitting(true);
 
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
 
     setIsSubmitting(false);
 
-    if (signInError) {
-      setError("Correo o contraseña incorrectos.");
+    if (signUpError) {
+      if (
+        signUpError.code === DUPLICATE_EMAIL_ERROR_CODE ||
+        DUPLICATE_EMAIL_MESSAGE_PATTERN.test(signUpError.message)
+      ) {
+        setError("Ya existe una cuenta con este correo.");
+        return;
+      }
+
+      setError("No se pudo crear la cuenta. Intentá de nuevo.");
       return;
     }
 
@@ -41,9 +60,9 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-4 rounded border border-border bg-surface-1 p-6"
       >
-        <h1 className="text-3xl">Iniciar sesión</h1>
+        <h1 className="text-3xl">Crear cuenta</h1>
         <p className="text-sm text-ink-muted">
-          Ingresa con la cuenta familiar de la granja.
+          Registrate para empezar a usar la granja.
         </p>
 
         <div className="space-y-1">
@@ -71,7 +90,7 @@ export default function LoginPage() {
             name="password"
             type="password"
             required
-            autoComplete="current-password"
+            autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             className="w-full rounded border border-border bg-surface-0 px-3 py-2 text-ink"
@@ -89,16 +108,13 @@ export default function LoginPage() {
           disabled={isSubmitting}
           className="btn-primary w-full"
         >
-          {isSubmitting ? "Ingresando..." : "Ingresar"}
+          {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
         </button>
 
         <p className="text-center text-sm text-ink-muted">
-          ¿No tenés cuenta?{" "}
-          <Link
-            href="/signup"
-            className="font-medium text-ink hover:underline"
-          >
-            Registrate
+          ¿Ya tenés cuenta?{" "}
+          <Link href="/login" className="font-medium text-ink hover:underline">
+            Iniciá sesión
           </Link>
         </p>
       </form>
