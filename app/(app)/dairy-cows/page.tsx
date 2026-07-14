@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+import { MilkDropIcon } from "@/components/icons/ModuleIcons";
 import { getAuthRedirect } from "@/lib/auth/guard";
 import { heatStatus, nextExpectedHeatDate } from "@/lib/dairy-cows/heat-cycle";
 import { listActiveDairyCows, listHeatEventsForCow } from "@/lib/db/queries";
@@ -52,7 +53,12 @@ export default async function DairyCowsPage() {
       </Link>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Vacas lecheras</h1>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-wash text-accent">
+            <MilkDropIcon className="h-6 w-6" />
+          </span>
+          <h1 className="text-2xl">Vacas lecheras</h1>
+        </div>
         <Link href="/dairy-cows/new" className="btn-primary">
           Registrar vaca
         </Link>

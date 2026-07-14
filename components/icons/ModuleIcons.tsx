@@ -43,6 +43,18 @@ export function MilkDropIcon({ className }: IconProps) {
   );
 }
 
+export function PenIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="-32 -32 64 64" className={className} fill="currentColor" aria-hidden="true">
+      <rect x="-23" y="-20" width="6" height="42" rx="2" />
+      <rect x="-3" y="-20" width="6" height="42" rx="2" />
+      <rect x="17" y="-20" width="6" height="42" rx="2" />
+      <rect x="-26" y="-10" width="52" height="6" rx="2" />
+      <rect x="-26" y="8" width="52" height="6" rx="2" />
+    </svg>
+  );
+}
+
 export function CycleHeartIcon({ className }: IconProps) {
   return (
     <svg viewBox="-32 -32 64 64" className={className} fill="currentColor" aria-hidden="true">

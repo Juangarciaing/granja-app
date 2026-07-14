@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+import { ScaleIcon } from "@/components/icons/ModuleIcons";
 import { getAuthRedirect } from "@/lib/auth/guard";
 import {
   getSaleWeightConfig,
@@ -51,7 +52,12 @@ export default async function FatteningPigsPage() {
       </Link>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Cerdos de engorde</h1>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-wash text-accent">
+            <ScaleIcon className="h-6 w-6" />
+          </span>
+          <h1 className="text-2xl">Cerdos de engorde</h1>
+        </div>
         <Link href="/fattening-pigs/new" className="btn-primary">
           Registrar cerdo
         </Link>

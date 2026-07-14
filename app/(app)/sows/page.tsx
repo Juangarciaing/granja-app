@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+import { SowIcon } from "@/components/icons/ModuleIcons";
 import { getAuthRedirect } from "@/lib/auth/guard";
 import { listSows } from "@/lib/db/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -41,7 +42,12 @@ export default async function SowsPage() {
       </Link>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Cerdas</h1>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-wash text-accent">
+            <SowIcon className="h-6 w-6" />
+          </span>
+          <h1 className="text-2xl">Cerdas</h1>
+        </div>
         <Link href="/sows/new" className="btn-primary">
           Registrar cerda
         </Link>

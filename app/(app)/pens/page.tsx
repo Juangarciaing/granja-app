@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+import { PenIcon } from "@/components/icons/ModuleIcons";
 import { getAuthRedirect } from "@/lib/auth/guard";
 import {
   listFatteningPigsForPen,
@@ -72,7 +73,12 @@ export default async function PensPage() {
       </Link>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Corrales</h1>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-wash text-accent">
+            <PenIcon className="h-6 w-6" />
+          </span>
+          <h1 className="text-2xl">Corrales</h1>
+        </div>
         <Link href="/pens/new" className="btn-primary">
           Crear corral
         </Link>
