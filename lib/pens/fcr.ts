@@ -1,3 +1,5 @@
+import { resolveLatestKnownWeight } from "@/lib/fattening-pigs/latest-weight";
+
 /**
  * Per-pig weight input for `calcPenFcr`. Every fattening pig always has an
  * `entryWeight` (DB `entry_weight not null check (entry_weight > 0)`,
@@ -70,7 +72,10 @@ export function calcPenFcr(
   }
 
   const totalGainKgRaw = pigs.reduce((sum, pig) => {
-    const latestKnownWeight = pig.latestWeight ?? pig.entryWeight;
+    const latestKnownWeight = resolveLatestKnownWeight(
+      pig.entryWeight,
+      pig.latestWeight,
+    );
     return sum + (latestKnownWeight - pig.entryWeight);
   }, 0);
   if (totalGainKgRaw <= 0) {

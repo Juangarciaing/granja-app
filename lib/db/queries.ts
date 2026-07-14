@@ -263,6 +263,72 @@ export async function updateFeedingConfig(
   return data;
 }
 
+export type SaleWeightConfigRow = Tables<"sale_weight_config">;
+
+/**
+ * Editable field for the sale-weight config edit form. `id`, `user_id` and
+ * `updated_at` are excluded, same rationale as `FeedingConfigUpdate`: there
+ * is exactly one row per user (migration 0006's auto-provisioning trigger +
+ * backfill, plus `sale_weight_config.user_id unique` constraint), so there
+ * is never a caller-supplied id to target.
+ */
+export type SaleWeightConfigUpdate = Pick<
+  TablesUpdate<"sale_weight_config">,
+  "target_weight_kg"
+>;
+
+/**
+ * Fetches the single current sale-weight-config row for the session. No
+ * explicit `user_id`/`id` filter is applied — migration 0006's
+ * auto-provisioning trigger + backfill plus the `user_id unique` constraint
+ * guarantee exactly one row is ever visible under RLS, same "trust RLS,
+ * don't duplicate it" contract as `getFeedingConfig`.
+ */
+export async function getSaleWeightConfig(
+  supabase: SupabaseDb,
+): Promise<SaleWeightConfigRow> {
+  const { data, error } = await supabase
+    .from("sale_weight_config")
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Overwrites `target_weight_kg` on the current row in place. Per spec
+ * "Farmer edits the target", there is no versioning/history — this update
+ * never touches `id`/`user_id` in its input payload, and the previous value
+ * is not retained anywhere (no separate insert, no audit table).
+ *
+ * The `eq("user_id", ...)` filter below is required for the same reason as
+ * `updateFeedingConfig`: Supabase's pg-safeupdate extension rejects any
+ * UPDATE with no WHERE clause at the DB level, even when RLS alone would
+ * already scope the statement to exactly one row.
+ */
+export async function updateSaleWeightConfig(
+  supabase: SupabaseDb,
+  input: SaleWeightConfigUpdate,
+): Promise<SaleWeightConfigRow> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("updateSaleWeightConfig requires an authenticated user");
+  }
+
+  const { data, error } = await supabase
+    .from("sale_weight_config")
+    .update(input)
+    .eq("user_id", user.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export type FatteningPig = Tables<"fattening_pigs">;
 
 /**

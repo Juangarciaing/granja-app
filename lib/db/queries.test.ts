@@ -19,6 +19,7 @@ import {
   getFatteningPig,
   getFeedingConfig,
   getPen,
+  getSaleWeightConfig,
   getSow,
   listActiveDairyCows,
   listActiveFarrowings,
@@ -38,6 +39,7 @@ import {
   updateFeedingConfig,
   updateMilkRecord,
   updatePen,
+  updateSaleWeightConfig,
   updateSow,
   updateWeightCheckin,
   weanFarrowing,
@@ -47,6 +49,7 @@ import type { Database, Tables } from "@/types/database";
 type Sow = Tables<"sows">;
 type Farrowing = Tables<"farrowings">;
 type FeedingConfigRow = Tables<"feeding_config">;
+type SaleWeightConfigRow = Tables<"sale_weight_config">;
 type FatteningPig = Tables<"fattening_pigs">;
 type WeightCheckin = Tables<"weight_checkins">;
 type DairyCow = Tables<"dairy_cows">;
@@ -420,6 +423,62 @@ describe("updateFeedingConfig", () => {
     expect(calls).toEqual([
       { method: "from", args: ["feeding_config"] },
       { method: "update", args: [{ base_kg: 2.5, kg_per_piglet: 0.5 }] },
+      { method: "eq", args: ["user_id", "user-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+const sampleSaleWeightConfig: SaleWeightConfigRow = {
+  id: "sale-weight-config-1",
+  user_id: "user-1",
+  target_weight_kg: 100,
+  updated_at: "2026-01-01T00:00:00Z",
+};
+
+describe("getSaleWeightConfig", () => {
+  it("fetches the single current sale-weight config row without any explicit user_id or id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: sampleSaleWeightConfig,
+      error: null,
+    });
+
+    const result = await getSaleWeightConfig(supabase);
+
+    expect(result).toEqual(sampleSaleWeightConfig);
+    expect(calls).toEqual([
+      { method: "from", args: ["sale_weight_config"] },
+      { method: "select", args: ["*"] },
+      { method: "single", args: [] },
+    ]);
+    // Exactly one row is ever visible per user (unique user_id + RLS), same
+    // "trust RLS, don't duplicate it" contract as getFeedingConfig.
+    expect(calls.some((call) => call.method === "eq")).toBe(false);
+  });
+});
+
+describe("updateSaleWeightConfig", () => {
+  it("overwrites target_weight_kg on the current row in place — no history/versioning columns written", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleSaleWeightConfig, target_weight_kg: 110 },
+      error: null,
+    });
+
+    const result = await updateSaleWeightConfig(supabase, {
+      target_weight_kg: 110,
+    });
+
+    expect(result.target_weight_kg).toBe(110);
+    const updateCall = calls.find((call) => call.method === "update");
+    expect(updateCall?.args[0]).toEqual({ target_weight_kg: 110 });
+    expect(updateCall?.args[0]).not.toHaveProperty("id");
+    expect(updateCall?.args[0]).not.toHaveProperty("user_id");
+    // Same pg-safeupdate contract as updateFeedingConfig: an explicit
+    // user_id filter is mandatory, not just a defensive/redundant check.
+    expect(calls).toEqual([
+      { method: "from", args: ["sale_weight_config"] },
+      { method: "update", args: [{ target_weight_kg: 110 }] },
       { method: "eq", args: ["user_id", "user-1"] },
       { method: "select", args: [] },
       { method: "single", args: [] },

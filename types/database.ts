@@ -281,6 +281,27 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_weight_config: {
+        Row: {
+          id: string
+          target_weight_kg: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          target_weight_kg?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          id?: string
+          target_weight_kg?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sows: {
         Row: {
           birth_date: string | null
