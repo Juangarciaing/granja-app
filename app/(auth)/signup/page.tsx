@@ -4,11 +4,8 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { validatePassword } from "@/lib/auth/validate";
+import { isDuplicateEmailError, validatePassword } from "@/lib/auth/validate";
 import { createClient } from "@/lib/supabase/client";
-
-const DUPLICATE_EMAIL_ERROR_CODE = "user_already_exists";
-const DUPLICATE_EMAIL_MESSAGE_PATTERN = /already registered/i;
 
 export default function SignupPage() {
   const router = useRouter();
@@ -38,10 +35,7 @@ export default function SignupPage() {
     setIsSubmitting(false);
 
     if (signUpError) {
-      if (
-        signUpError.code === DUPLICATE_EMAIL_ERROR_CODE ||
-        DUPLICATE_EMAIL_MESSAGE_PATTERN.test(signUpError.message)
-      ) {
+      if (isDuplicateEmailError(signUpError)) {
         setError("Ya existe una cuenta con este correo.");
         return;
       }
