@@ -2,31 +2,42 @@ import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  assignPigToPen,
   createDairyCow,
   createFarrowing,
   createFatteningPig,
+  createFeedLog,
   createMilkRecord,
+  createPen,
   createSow,
   createWeightCheckin,
+  deleteFeedLog,
   deleteMilkRecord,
   deleteWeightCheckin,
   getDairyCow,
   getFarrowing,
   getFatteningPig,
   getFeedingConfig,
+  getPen,
   getSow,
   listActiveDairyCows,
   listActiveFarrowings,
   listActiveFatteningPigs,
   listFarrowingsForSow,
+  listFatteningPigsForPen,
+  listFeedLogsForPen,
   listMilkRecordsForCow,
+  listPens,
   listSows,
+  listUnassignedFatteningPigs,
   listWeightCheckinsForPig,
   markDairyCowExited,
   markFatteningPigSold,
   updateFarrowingCounter,
+  updateFeedLog,
   updateFeedingConfig,
   updateMilkRecord,
+  updatePen,
   updateSow,
   updateWeightCheckin,
   weanFarrowing,
@@ -40,6 +51,8 @@ type FatteningPig = Tables<"fattening_pigs">;
 type WeightCheckin = Tables<"weight_checkins">;
 type DairyCow = Tables<"dairy_cows">;
 type MilkRecord = Tables<"milk_records">;
+type Pen = Tables<"pens">;
+type FeedLog = Tables<"feed_logs">;
 type Call = { method: string; args: unknown[] };
 
 /**
@@ -421,6 +434,7 @@ const sampleFatteningPig: FatteningPig = {
   entry_date: "2026-07-01",
   entry_weight: 18.5,
   exit_date: null,
+  pen_id: null,
   created_at: "2026-07-01T00:00:00Z",
   updated_at: "2026-07-01T00:00:00Z",
 };
@@ -892,6 +906,296 @@ describe("deleteMilkRecord", () => {
 
     await expect(deleteMilkRecord(supabase, "record-1")).rejects.toEqual({
       message: "permission denied for table milk_records",
+    });
+  });
+});
+
+const samplePen: Pen = {
+  id: "pen-1",
+  user_id: "user-1",
+  name: "Corral 1",
+  created_at: "2026-07-13T00:00:00Z",
+  updated_at: "2026-07-13T00:00:00Z",
+};
+
+describe("listPens", () => {
+  it("selects from pens ordered by newest first without any explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({ data: [samplePen], error: null });
+
+    const result = await listPens(supabase);
+
+    expect(result).toEqual([samplePen]);
+    expect(calls).toEqual([
+      { method: "from", args: ["pens"] },
+      { method: "select", args: ["*"] },
+      { method: "order", args: ["created_at", { ascending: false }] },
+    ]);
+    // Farm isolation relies on RLS (auth.uid() = user_id), never an
+    // app-level user_id filter — same contract as listSows.
+    expect(calls.some((call) => call.method === "eq")).toBe(false);
+  });
+
+  it("propagates a Postgres/RLS error instead of swallowing it", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: { message: "permission denied for table pens" },
+    });
+
+    await expect(listPens(supabase)).rejects.toEqual({
+      message: "permission denied for table pens",
+    });
+  });
+});
+
+describe("getPen", () => {
+  it("fetches a single pen scoped by id", async () => {
+    const { supabase, calls } = fakeSupabase({ data: samplePen, error: null });
+
+    const result = await getPen(supabase, "pen-1");
+
+    expect(result).toEqual(samplePen);
+    expect(calls).toEqual([
+      { method: "from", args: ["pens"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["id", "pen-1"] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("createPen", () => {
+  it("inserts only the editable fields, never a caller-supplied user_id", async () => {
+    const { supabase, calls } = fakeSupabase({ data: samplePen, error: null });
+
+    const result = await createPen(supabase, { name: "Corral 1" });
+
+    expect(result).toEqual(samplePen);
+    const insertCall = calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toEqual({ name: "Corral 1" });
+    expect(insertCall?.args[0]).not.toHaveProperty("user_id");
+  });
+});
+
+describe("updatePen", () => {
+  it("updates only the provided fields for the given id, scoped by eq('id', id)", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...samplePen, name: "Corral Norte" },
+      error: null,
+    });
+
+    const result = await updatePen(supabase, "pen-1", { name: "Corral Norte" });
+
+    expect(result.name).toBe("Corral Norte");
+    expect(calls).toEqual([
+      { method: "from", args: ["pens"] },
+      { method: "update", args: [{ name: "Corral Norte" }] },
+      { method: "eq", args: ["id", "pen-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("listUnassignedFatteningPigs", () => {
+  it("selects only pigs with no pen_id and no exit_date, newest first, without an explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleFatteningPig],
+      error: null,
+    });
+
+    const result = await listUnassignedFatteningPigs(supabase);
+
+    expect(result).toEqual([sampleFatteningPig]);
+    expect(calls).toEqual([
+      { method: "from", args: ["fattening_pigs"] },
+      { method: "select", args: ["*"] },
+      { method: "is", args: ["pen_id", null] },
+      { method: "is", args: ["exit_date", null] },
+      { method: "order", args: ["created_at", { ascending: false }] },
+    ]);
+    expect(
+      calls.some((call) => call.method === "eq" && call.args[0] === "user_id"),
+    ).toBe(false);
+  });
+});
+
+describe("listFatteningPigsForPen", () => {
+  it("selects pigs assigned to the given pen, newest first, without an explicit user_id filter", async () => {
+    const assignedPig = { ...sampleFatteningPig, pen_id: "pen-1" };
+    const { supabase, calls } = fakeSupabase({
+      data: [assignedPig],
+      error: null,
+    });
+
+    const result = await listFatteningPigsForPen(supabase, "pen-1");
+
+    expect(result).toEqual([assignedPig]);
+    expect(calls).toEqual([
+      { method: "from", args: ["fattening_pigs"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["pen_id", "pen-1"] },
+      { method: "order", args: ["created_at", { ascending: false }] },
+    ]);
+  });
+});
+
+describe("assignPigToPen", () => {
+  it("sets pen_id for the given pig id, scoped only by eq('id', id) — same pg-safeupdate contract as markFatteningPigSold", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleFatteningPig, pen_id: "pen-1" },
+      error: null,
+    });
+
+    const result = await assignPigToPen(supabase, "pig-1", "pen-1");
+
+    expect(result.pen_id).toBe("pen-1");
+    expect(calls).toEqual([
+      { method: "from", args: ["fattening_pigs"] },
+      { method: "update", args: [{ pen_id: "pen-1" }] },
+      { method: "eq", args: ["id", "pig-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+
+  it("accepts null to unassign a pig from its pen", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleFatteningPig, pen_id: null },
+      error: null,
+    });
+
+    const result = await assignPigToPen(supabase, "pig-1", null);
+
+    expect(result.pen_id).toBeNull();
+    const updateCall = calls.find((call) => call.method === "update");
+    expect(updateCall?.args[0]).toEqual({ pen_id: null });
+  });
+});
+
+const sampleFeedLog: FeedLog = {
+  id: "feed-log-1",
+  user_id: "user-1",
+  pen_id: "pen-1",
+  log_date: "2026-07-13",
+  kg_fed: 45.5,
+  created_at: "2026-07-13T00:00:00Z",
+  updated_at: "2026-07-13T00:00:00Z",
+};
+
+describe("listFeedLogsForPen", () => {
+  it("selects feed logs for the given pen ordered by log_date DESCENDING (newest first), without an explicit user_id filter", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: [sampleFeedLog],
+      error: null,
+    });
+
+    const result = await listFeedLogsForPen(supabase, "pen-1");
+
+    expect(result).toEqual([sampleFeedLog]);
+    expect(calls).toEqual([
+      { method: "from", args: ["feed_logs"] },
+      { method: "select", args: ["*"] },
+      { method: "eq", args: ["pen_id", "pen-1"] },
+      { method: "order", args: ["log_date", { ascending: false }] },
+    ]);
+    expect(
+      calls.some((call) => call.method === "eq" && call.args[0] === "user_id"),
+    ).toBe(false);
+  });
+
+  it("returns an empty list for a pen with zero feed logs, without an error", async () => {
+    const { supabase } = fakeSupabase({ data: [], error: null });
+
+    const result = await listFeedLogsForPen(supabase, "pen-1");
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe("createFeedLog", () => {
+  it("inserts only the editable fields plus pen_id, never a caller-supplied user_id", async () => {
+    const { supabase, calls } = fakeSupabase({ data: sampleFeedLog, error: null });
+
+    const result = await createFeedLog(supabase, {
+      pen_id: "pen-1",
+      log_date: "2026-07-13",
+      kg_fed: 45.5,
+    });
+
+    expect(result).toEqual(sampleFeedLog);
+    const insertCall = calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toEqual({
+      pen_id: "pen-1",
+      log_date: "2026-07-13",
+      kg_fed: 45.5,
+    });
+    expect(insertCall?.args[0]).not.toHaveProperty("user_id");
+  });
+
+  it("propagates a duplicate (pen_id, log_date) unique-violation error instead of swallowing it", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: {
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "feed_logs_pen_id_log_date_key"',
+      },
+    });
+
+    await expect(
+      createFeedLog(supabase, {
+        pen_id: "pen-1",
+        log_date: "2026-07-13",
+        kg_fed: 45.5,
+      }),
+    ).rejects.toMatchObject({ code: "23505" });
+  });
+});
+
+describe("updateFeedLog", () => {
+  it("updates log_date and kg_fed for the given id, scoped only by eq('id', id)", async () => {
+    const { supabase, calls } = fakeSupabase({
+      data: { ...sampleFeedLog, kg_fed: 50 },
+      error: null,
+    });
+
+    const result = await updateFeedLog(supabase, "feed-log-1", {
+      log_date: "2026-07-13",
+      kg_fed: 50,
+    });
+
+    expect(result.kg_fed).toBe(50);
+    expect(calls).toEqual([
+      { method: "from", args: ["feed_logs"] },
+      { method: "update", args: [{ log_date: "2026-07-13", kg_fed: 50 }] },
+      { method: "eq", args: ["id", "feed-log-1"] },
+      { method: "select", args: [] },
+      { method: "single", args: [] },
+    ]);
+  });
+});
+
+describe("deleteFeedLog", () => {
+  it("deletes the feed log scoped only by eq('id', id)", async () => {
+    const { supabase, calls } = fakeSupabase({ data: null, error: null });
+
+    await deleteFeedLog(supabase, "feed-log-1");
+
+    expect(calls).toEqual([
+      { method: "from", args: ["feed_logs"] },
+      { method: "delete", args: [] },
+      { method: "eq", args: ["id", "feed-log-1"] },
+    ]);
+  });
+
+  it("propagates a Postgres/RLS error instead of swallowing it", async () => {
+    const { supabase } = fakeSupabase({
+      data: null,
+      error: { message: "permission denied for table feed_logs" },
+    });
+
+    await expect(deleteFeedLog(supabase, "feed-log-1")).rejects.toEqual({
+      message: "permission denied for table feed_logs",
     });
   });
 });

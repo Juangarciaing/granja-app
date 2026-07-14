@@ -271,6 +271,10 @@ export type FatteningPig = Tables<"fattening_pigs">;
  * `user_id` is assigned by RLS default (same ownership contract as `NewSow`),
  * and `exit_date` is only ever set later via `markFatteningPigSold` —
  * there is no "pre-sold" registration path (spec: "Register Fattening Pig").
+ * `pen_id` is NOT excluded — it stays optional (per `TablesInsert`'s
+ * generated shape) so the registration form may set an initial pen, per
+ * design "assignment surface = pig detail page (canonical) + optional
+ * register field".
  */
 export type NewFatteningPig = Omit<
   TablesInsert<"fattening_pigs">,
@@ -653,6 +657,242 @@ export async function deleteMilkRecord(
   id: string,
 ): Promise<void> {
   const { error } = await supabase.from("milk_records").delete().eq("id", id);
+
+  if (error) throw error;
+}
+
+export type Pen = Tables<"pens">;
+
+/**
+ * Editable pen fields for create. `user_id`, `id` and `created_at`/
+ * `updated_at` are intentionally excluded: `user_id` is assigned by RLS
+ * default (same ownership contract as `NewSow`).
+ */
+export type NewPen = Omit<TablesInsert<"pens">, "user_id" | "id" | "created_at" | "updated_at">;
+
+/**
+ * Editable pen fields for edit — only `name` (mirrors `SowUpdate`'s shape
+ * for a single-field edit).
+ */
+export type PenUpdate = Pick<TablesUpdate<"pens">, "name">;
+
+/**
+ * Lists pens for the current session. No explicit `user_id` filter is
+ * applied — row visibility is scoped entirely by the `pens_select_own` RLS
+ * policy, same pattern as `listSows`.
+ */
+export async function listPens(supabase: SupabaseDb): Promise<Pen[]> {
+  const { data, error } = await supabase
+    .from("pens")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getPen(supabase: SupabaseDb, id: string): Promise<Pen> {
+  const { data, error } = await supabase
+    .from("pens")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function createPen(supabase: SupabaseDb, input: NewPen): Promise<Pen> {
+  const { data, error } = await supabase.from("pens").insert(input).select().single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Renames a pen in place. Same pg-safeupdate contract as `updateSow`: a
+ * bare `.eq('id', id)` filter alone satisfies Supabase's "UPDATE requires a
+ * WHERE clause" requirement — `id` is already a unique per-row target, and
+ * RLS still scopes which rows are visible to update in the first place.
+ */
+export async function updatePen(
+  supabase: SupabaseDb,
+  id: string,
+  input: PenUpdate,
+): Promise<Pen> {
+  const { data, error } = await supabase
+    .from("pens")
+    .update(input)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Lists active pigs not yet assigned to any pen ("sin corral" group on the
+ * pens list page): `pen_id is null and exit_date is null`. No explicit
+ * `user_id` filter — visibility is scoped by the
+ * `fattening_pigs_select_own` RLS policy, same pattern as
+ * `listActiveFatteningPigs`.
+ */
+export async function listUnassignedFatteningPigs(
+  supabase: SupabaseDb,
+): Promise<FatteningPig[]> {
+  const { data, error } = await supabase
+    .from("fattening_pigs")
+    .select("*")
+    .is("pen_id", null)
+    .is("exit_date", null)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Lists pigs currently assigned to a given pen, newest first. No explicit
+ * `user_id` filter — visibility is scoped by the
+ * `fattening_pigs_select_own` RLS policy, same pattern as
+ * `listFarrowingsForSow`.
+ */
+export async function listFatteningPigsForPen(
+  supabase: SupabaseDb,
+  penId: string,
+): Promise<FatteningPig[]> {
+  const { data, error } = await supabase
+    .from("fattening_pigs")
+    .select("*")
+    .eq("pen_id", penId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Assigns (or, with `penId: null`, unassigns) a pig to a pen — the
+ * canonical write path is the pig detail page (design decision: "assignment
+ * surface = pig detail page (canonical) + optional register field"). Same
+ * pg-safeupdate contract as `markFatteningPigSold`: a bare `.eq('id', id)`
+ * filter alone satisfies Supabase's "UPDATE requires a WHERE clause"
+ * requirement — RLS still scopes which rows are visible to update in the
+ * first place.
+ */
+export async function assignPigToPen(
+  supabase: SupabaseDb,
+  pigId: string,
+  penId: string | null,
+): Promise<FatteningPig> {
+  const { data, error } = await supabase
+    .from("fattening_pigs")
+    .update({ pen_id: penId })
+    .eq("id", pigId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export type FeedLog = Tables<"feed_logs">;
+
+/**
+ * Editable feed-log fields for create. `user_id`, `id` and
+ * `created_at`/`updated_at` are intentionally excluded: `user_id` is
+ * assigned by RLS default (same ownership contract as `NewMilkRecord`).
+ * `pen_id` IS included because the caller must always target an existing
+ * pen. The DB-level `unique (pen_id, log_date)` constraint (migration 0005)
+ * is the single source of truth for "one feed total per pen per day" — its
+ * `23505` violation is propagated here rather than swallowed, same
+ * "trust the DB, don't duplicate it" contract as `createMilkRecord`.
+ */
+export type NewFeedLog = Omit<
+  TablesInsert<"feed_logs">,
+  "user_id" | "id" | "created_at" | "updated_at"
+>;
+
+/**
+ * Editable feed-log fields for edit. `feed_logs` is fully editable/deletable
+ * (not append-only), same rationale as `MilkRecordUpdate` — correcting a
+ * mistyped daily total is an edit, not a new insert (which would collide
+ * with the unique constraint anyway).
+ */
+export type FeedLogUpdate = Pick<TablesUpdate<"feed_logs">, "log_date" | "kg_fed">;
+
+/**
+ * Lists a pen's feed logs newest-first (`log_date` descending), same
+ * ordering rationale as `listMilkRecordsForCow` (a daily total log has no
+ * baseline anchor row, so the most recent day first is more useful). No
+ * explicit `user_id` filter — visibility is scoped by the
+ * `feed_logs_select_own` RLS policy, same pattern as
+ * `listMilkRecordsForCow`.
+ */
+export async function listFeedLogsForPen(
+  supabase: SupabaseDb,
+  penId: string,
+): Promise<FeedLog[]> {
+  const { data, error } = await supabase
+    .from("feed_logs")
+    .select("*")
+    .eq("pen_id", penId)
+    .order("log_date", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Records a new daily feed total for a pen (spec-equivalent of "Record a
+ * daily milk total"). Each call inserts a new row. A second insert for the
+ * same `(pen_id, log_date)` is rejected by the DB's `unique (pen_id,
+ * log_date)` constraint (Postgres error code `23505`) — callers (see
+ * `createFeedLogAction`) MUST catch that specific error and surface
+ * edit-instead guidance rather than a generic failure.
+ */
+export async function createFeedLog(
+  supabase: SupabaseDb,
+  input: NewFeedLog,
+): Promise<FeedLog> {
+  const { data, error } = await supabase.from("feed_logs").insert(input).select().single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Corrects a previously recorded feed total's date/kg in place. Same
+ * pg-safeupdate contract as `updateMilkRecord`: a bare `.eq('id', id)`
+ * filter alone satisfies Supabase's "UPDATE requires a WHERE clause"
+ * requirement — `id` is already a unique per-row target, and RLS still
+ * scopes which rows are visible to update in the first place.
+ */
+export async function updateFeedLog(
+  supabase: SupabaseDb,
+  id: string,
+  input: FeedLogUpdate,
+): Promise<FeedLog> {
+  const { data, error } = await supabase
+    .from("feed_logs")
+    .update(input)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Deletes a mistyped/unwanted feed log. Supabase's pg-safeupdate extension
+ * also rejects a DELETE with no WHERE clause, same as UPDATE — the
+ * `.eq('id', id)` filter here is mandatory for that reason (not just a
+ * defensive ownership check; RLS already scopes which rows are visible).
+ */
+export async function deleteFeedLog(supabase: SupabaseDb, id: string): Promise<void> {
+  const { error } = await supabase.from("feed_logs").delete().eq("id", id);
 
   if (error) throw error;
 }

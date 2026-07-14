@@ -121,6 +121,7 @@ export type Database = {
           entry_weight: number
           exit_date: string | null
           id: string
+          pen_id: string | null
           updated_at: string
           user_id: string
         }
@@ -131,6 +132,7 @@ export type Database = {
           entry_weight: number
           exit_date?: string | null
           id?: string
+          pen_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -141,10 +143,57 @@ export type Database = {
           entry_weight?: number
           exit_date?: string | null
           id?: string
+          pen_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fattening_pigs_pen_id_fkey"
+            columns: ["pen_id"]
+            isOneToOne: false
+            referencedRelation: "pens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_logs: {
+        Row: {
+          created_at: string
+          id: string
+          kg_fed: number
+          log_date: string
+          pen_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kg_fed: number
+          log_date: string
+          pen_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kg_fed?: number
+          log_date?: string
+          pen_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_logs_pen_id_fkey"
+            columns: ["pen_id"]
+            isOneToOne: false
+            referencedRelation: "pens"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feeding_config: {
         Row: {
@@ -207,6 +256,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pens: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       sows: {
         Row: {

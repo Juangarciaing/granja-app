@@ -51,6 +51,14 @@ app can run against a real backend:
      `fattening_pigs` and `weight_checkins` (module 2), both with full
      select/insert/update/delete RLS, plus the partial unique index that
      rejects a duplicate active `ear_tag` per user.
+   - `0004_dairy_cows_and_milk_records.sql` — creates `dairy_cows` and
+     `milk_records` (module 3), full RLS, plus the `unique (cow_id,
+     record_date)` constraint that rejects a duplicate daily total.
+   - `0005_pens_and_feed_logs.sql` — creates `pens` and `feed_logs` (module
+     4), full RLS, plus the `unique (pen_id, log_date)` constraint that
+     rejects a duplicate daily feed total; also `ALTER TABLE fattening_pigs
+     ADD COLUMN pen_id` (nullable, `on delete set null`) for current-only
+     pig-to-pen assignment. `feed_logs.pen_id` is `on delete cascade`.
 5. Regenerate the typed schema (replaces the hand-authored placeholder at
    `types/database.ts`):
    ```bash
