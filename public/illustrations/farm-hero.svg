@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <!-- sun -->
+  <circle cx="540" cy="86" r="44" fill="#b4601f" opacity="0.85" />
+
+  <!-- back hill -->
+  <path d="M 0 260 Q 160 210 320 250 T 640 240 V 400 H 0 Z" fill="#e3dcc6" />
+  <!-- front hill -->
+  <path d="M 0 310 Q 200 270 380 300 T 640 290 V 400 H 0 Z" fill="#2e6b3f" opacity="0.16" />
+  <!-- ground line -->
+  <path d="M 0 330 Q 200 312 380 322 T 640 316" fill="none" stroke="#2e6b3f" stroke-width="4" opacity="0.3" />
+
+  <!-- barn -->
+  <g>
+    <polygon points="118,212 198,167 278,212" fill="#204f2e" />
+    <rect x="128" y="212" width="140" height="98" fill="#204f2e" />
+    <rect x="178" y="254" width="40" height="56" rx="3" fill="#efe9da" />
+    <circle cx="150" cy="234" r="11" fill="#efe9da" />
+  </g>
+
+  <!-- pig -->
+  <g>
+    <ellipse cx="345" cy="344" rx="58" ry="9" fill="#26231a" opacity="0.1" />
+    <ellipse cx="330" cy="300" rx="50" ry="28" fill="#26231a" />
+    <circle cx="375" cy="280" r="22" fill="#26231a" />
+    <polygon points="366,262 374,246 384,264" fill="#26231a" />
+    <rect x="388" y="276" width="16" height="13" rx="5" fill="#efe9da" />
+    <circle cx="394" cy="283" r="1.5" fill="#26231a" />
+    <circle cx="399" cy="283" r="1.5" fill="#26231a" />
+    <path d="M 286 292 Q 274 282 280 270" fill="none" stroke="#26231a" stroke-width="4" stroke-linecap="round" />
+    <rect x="302" y="324" width="8" height="18" fill="#26231a" />
+    <rect x="320" y="326" width="8" height="18" fill="#26231a" />
+    <rect x="348" y="326" width="8" height="18" fill="#26231a" />
+    <rect x="362" y="324" width="8" height="18" fill="#26231a" />
+  </g>
+
+  <!-- cow -->
+  <g>
+    <ellipse cx="535" cy="356" rx="52" ry="9" fill="#204f2e" opacity="0.12" />
+    <ellipse cx="520" cy="304" rx="44" ry="28" fill="#204f2e" />
+    <circle cx="560" cy="286" r="22" fill="#204f2e" />
+    <ellipse cx="546" cy="266" rx="7" ry="10" fill="#204f2e" transform="rotate(-20 546 266)" />
+    <ellipse cx="572" cy="266" rx="7" ry="10" fill="#204f2e" transform="rotate(20 572 266)" />
+    <ellipse cx="500" cy="298" rx="13" ry="9" fill="#efe9da" />
+    <ellipse cx="518" cy="315" rx="10" ry="7" fill="#efe9da" />
+    <rect x="490" y="326" width="8" height="20" fill="#204f2e" />
+    <rect x="510" y="328" width="8" height="20" fill="#204f2e" />
+    <rect x="540" y="328" width="8" height="20" fill="#204f2e" />
+    <rect x="554" y="326" width="8" height="20" fill="#204f2e" />
+  </g>
+</svg>
