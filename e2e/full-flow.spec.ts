@@ -54,7 +54,7 @@ test.describe("Full authenticated flow: sow → farrowing → live feed", () => 
     await page.getByLabel("Correo").fill(EMAIL!);
     await page.getByLabel("Contraseña").fill(PASSWORD!);
     await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     // --- Register a sow (spec: sow-management "Register new sow") ---
     await page.getByRole("link", { name: "Ver cerdas →" }).click();
@@ -82,7 +82,7 @@ test.describe("Full authenticated flow: sow → farrowing → live feed", () => 
 
     // --- View it on the dashboard with its live daily feed
     //     (spec: lactation-feed-calc "Standard calculation") ---
-    await page.goto("/");
+    await page.goto("/dashboard");
     await expect(page.getByText(sowName)).toBeVisible();
     await expect(page.getByText("8 lechones")).toBeVisible();
 
@@ -103,7 +103,7 @@ test.describe("Full authenticated flow: sow → farrowing → live feed", () => 
     await page.reload();
     await expect(page.getByText("7", { exact: true }).first()).toBeVisible();
 
-    await page.goto("/");
+    await page.goto("/dashboard");
     await expect(page.getByText("7 lechones")).toBeVisible();
     expect(await page.textContent("body")).not.toBe(feedBeforeText);
   });
@@ -117,7 +117,7 @@ test.describe("Full authenticated flow: sow → farrowing → live feed", () => 
     await page.getByLabel("Correo").fill(EMAIL!);
     await page.getByLabel("Contraseña").fill(PASSWORD!);
     await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     await page.goto("/sows/new");
     await page.getByLabel("Arete").fill(sowName);
@@ -129,7 +129,7 @@ test.describe("Full authenticated flow: sow → farrowing → live feed", () => 
     await page.getByLabel("Lechones nacidos vivos").fill("5");
     await page.getByRole("button", { name: "Registrar parto" }).click();
 
-    await page.goto("/");
+    await page.goto("/dashboard");
     await expect(page.getByText(sowName)).toBeVisible();
 
     // Wean it (spec: farrowing-tracking "Set weaning date")
@@ -147,7 +147,7 @@ test.describe("Full authenticated flow: sow → farrowing → live feed", () => 
     ).not.toBeVisible();
 
     // spec: lactation-feed-calc "Weaned farrowing excluded"
-    await page.goto("/");
+    await page.goto("/dashboard");
     await expect(page.getByText(sowName)).not.toBeVisible();
   });
 });

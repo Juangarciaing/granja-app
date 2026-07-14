@@ -33,7 +33,7 @@ export async function updateConfigAction(
   await updateFeedingConfig(supabase, result.value);
 
   revalidatePath("/config");
-  revalidatePath("/");
+  revalidatePath("/dashboard");
   redirect("/config");
 }
 
