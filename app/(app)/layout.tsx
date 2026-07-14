@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { signOutAction } from "@/app/(app)/actions";
 import { getAuthRedirect } from "@/lib/auth/guard";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,6 +23,16 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-surface-0 text-ink">
+      <div className="flex justify-end border-b border-border px-4 py-2">
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="text-sm font-medium text-ink-muted hover:text-ink"
+          >
+            Cerrar sesión
+          </button>
+        </form>
+      </div>
       {children}
     </div>
   );
